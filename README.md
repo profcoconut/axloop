@@ -1,10 +1,10 @@
 # axloop
 
-Autonomous AI-driven DevOps team skill for Claude Code. Models a real software team with PM, Designer, N Developers, QA, and DevOps — all coordinated via SendMessage.
+Autonomous AI-driven DevOps team. Manager coordinates developers, designer, QA, DevOps — all via SendMessage. Event-driven, no cron, no polling.
 
-**Dual-skill architecture:** gstack (decisions + browser QA) + CE (planning + deep review + compound knowledge). Framework-agnostic.
+**The Manager is a persistent background agent.** It stays alive across the session, reacts to events, never waits for one step to finish before spawning the next.
 
-Designed to achieve the **forever auto loop** — running indefinitely with self-healing, self-improving, zero human intervention. The 10 Manager's Laws make this possible.
+**gstack + CE skills run automatically throughout.** The 10 Laws are the constitution that makes the forever auto loop possible.
 
 ## Usage
 
@@ -12,58 +12,71 @@ Designed to achieve the **forever auto loop** — running indefinitely with self
 /axloop <path-to-doc> [rapid|quality|auto]
 ```
 
-**Example:**
-```
-/axloop ~/myproject/docs/feature-plan.md rapid
-```
-
-## Team Structure
+## Team
 
 ```
 PRODUCT MANAGER → MANAGER → Designer, DevOps, QA
                           ↓
-                    Dev1, Dev2, ... DevN  (unlimited parallel)
+                    Dev1, Dev2, ... DevN  (parallel)
 ```
 
-- **PM**: owns what to build, prioritizes backlog
-- **Designer**: produces UI/UX specs before implementation
-- **Manager**: decides how, assigns work, coordinates all agents
-- **Dev1-N**: unlimited parallel developers, PR-based workflow, TDD
-- **QA**: regression tests + design verification gate
-- **DevOps**: build gate, deploy pipeline, smoke tests, rollback
+- **Manager**: persistent background agent, watches state, reacts to events, spawns all roles
+- **Developers**: parallel, TDD, PR workflow
+- **QA**: regression + design verification gate
+- **DevOps**: build gate, deploy, smoke test, rollback
+- **Designer**: UI/UX specs before implementation
 
-## How It Works
+## The Forever Auto Loop
 
-The Manager is a persistent background agent. It never exits after spawning workers — it stays alive and reacts to SendMessage from sub-agents. **Purely event-driven, no cron, no polling.**
+Runs forever without human intervention. Survives session deaths. Self-heals on failure. Compounds knowledge over time. Never goes idle.
 
-All communication via SendMessage. Files are for state persistence and human visibility only.
+## 10 Laws
 
-**The forever auto loop:** Loop survives session deaths (all state in files), self-heals (rollback on smoke fail), compounds knowledge (CE builds searchable knowledge base), never goes idle (devs always working).
+1. Never push to main/feat directly — all PR
+2. Never merge without smoke test
+3. Never leave repo broken
+4. Never skip rollback on smoke failure
+5. Never write to main/feat branch
+6. Always write loop.log
+7. Always write cycle-wip before session ends
+8. Always assign when devs idle and backlog has items
+9. Always spawn in parallel
+10. Always reconcile on startup
 
-## Modes
+## Skills (automatic)
 
-| Mode | Developers | Designer | QA | Deploy | Skill Usage |
-|------|-----------|---------|-----|--------|-------------|
-| rapid | N parallel | optional | specific test only | always | skip /canary; `/ce:compound` after cycle |
-| quality | 1 at a time | required | full regression suite | always after QA | all skills mandatory |
-| auto | N parallel | optional | quality if regressions exist | always | /canary + /simplify every 10 cycles |
-
-## Knowledge Accumulation
-
-After every cycle, `/ce:compound` writes a structured doc to `docs/solutions/` — context, solution, prevention. Future `/ce:plan` calls find these via learnings-researcher. The longer axloop runs, the smarter it gets.
+| Skill | Role |
+|-------|------|
+| `/investigate` | Dev: root cause |
+| `/simplify` | Dev + DevOps: quality |
+| `/review` | Dev + QA: pre-PR review |
+| `/qa` | QA: functional test |
+| `/browse` | DevOps: smoke test |
+| `/canary` | DevOps: post-deploy monitor |
+| `/retro` | Manager: cycle retrospective |
+| `/ce:plan` | Manager: deep planning |
+| `/ce:review` | Manager + QA: 6-15 parallel reviewers |
+| `/ce:compound` | Manager: build knowledge base |
 
 ## Session Resume
 
-All state is in `worktree/` files — survives session deaths. New session reads `.loop.log`, `.loop-status.json`, `.cycle-wip`, backlog, and resumes from where it left off. No work is lost.
+All state in `worktree/` files. New session reads loop.log, backlog, cycle-wip, deploy-state, open PRs — resumes from where left off. No work lost.
+
+## Modes
+
+| Mode | Developers | QA | Skills |
+|------|-----------|-----|--------|
+| rapid | parallel | specific test | skip /canary |
+| quality | 1 at a time | full suite | all mandatory |
+| auto | parallel | quality if regressions | /canary every 10 cycles |
 
 ## Requirements
 
 - Claude Code session
-- Git repository with a working branch
-- `gh` CLI for PR operations
-- Test command and build command configured in SKILL.md
+- Git repository + `gh` CLI
+- Test + build commands configured in SKILL.md
 
-## Skill Location
+## Location
 
 - Project-level: `.claude/skills/axloop/SKILL.md`
 - Source: `~/Documents/skills/Axloop/`

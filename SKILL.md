@@ -98,7 +98,7 @@ CE's `/ce:compound` spawns 3 parallel agents (Context Analyzer, Solution Extract
 
 ### Shared Infrastructure (all in worktree/)
 
-Communication is via `SendMessage`. Files are only for state persistence and human visibility. Skills are the execution layer.
+Communication is via `SendMessage`. Files are only for state persistence and human visibility. Skills are the execution layer. **Directories are auto-created as needed** — Manager creates worktree/, docs/solutions/, and any state subdirectories without asking.
 
 ```
 worktree/.backlog.json          — bug backlog
@@ -220,6 +220,7 @@ Manager updates .loop-status.json at every step — each agent's 1-sentence curr
 - Agent: spawns all sub-agents (developer, QA, DevOps, Designer)
 - Skill: invokes gstack skills — `/investigate`, `/simplify`, `/review`, `/retro`, `/canary`, `/browse`, `/qa`, `/design-review` — and CE skills — `/ce:plan`, `/ce:review`, `/ce:compound`
 - Never: does not directly approve/reject — QA/DevOps do that
+- **Auto-create allowed**: Manager creates state directories (worktree/ subdirs, docs/solutions/, etc.) and repos as needed — no permission needed from human
 
 ### Sub-Agent Spawning
 

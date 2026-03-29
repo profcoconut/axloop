@@ -2,11 +2,11 @@
 
 Autonomous AI-driven DevOps team skill for Claude Code. Models a real software team with PM, Designer, 4 Developers, QA, and DevOps — all coordinated via SendMessage.
 
-Built for long-running autonomous improvement cycles on VoxParty, but framework-agnostic.
+Framework-agnostic. Configure test command, build command, and smoke test per project.
 
-Designed to run for hours with self-correcting rollback, checkpointing, and risk mitigation — minimal human intervention needed.
+Designed to run for hours with self-correcting rollback, checkpointing, and risk mitigation — minimal human intervention needed. Project-agnostic — configure test/build commands per project.
 
-**Dual-skill architecture:** gstack (decision + browser QA) + CE (planning + deep review + compound knowledge)
+**Dual-skill architecture:** gstack (decision + browser QA) + CE (planning + deep review + compound knowledge). Framework-agnostic.
 
 ## Usage
 
@@ -83,12 +83,11 @@ gh pr list                       # all open PRs
 ## Requirements
 
 - Claude Code session
-- Git repository with `feat/engine` branch or equivalent
+- Git repository with a working branch (e.g. `feat/engine`, `main`)
 - `gh` CLI for PR operations
-- Memory path configured in SKILL.md
+- Test command and build command configured in SKILL.md
 
 ## Skill Location
 
 - Project-level: `.claude/skills/axloop/SKILL.md`
 - Source: `~/Documents/skills/Axloop/`
-- Requirements: `docs/brainstorms/parallel-axloop-requirements.md`

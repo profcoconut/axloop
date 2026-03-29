@@ -1,18 +1,19 @@
 ---
 name: axloop
 preamble-tier: 2
-version: 1.3.0
+version: 1.4.0
 description: |
   Autonomous AI-driven DevOps team that runs like a real company.
   A manager coordinates: N developers (unlimited parallel PRs), a designer (specs),
   QA (regression + design verification), and DevOps (build gate + deploy + smoke test).
-  Event-driven, no cron. Uses gstack + CE skills automatically throughout the workflow.
+  Event-driven, no cron, no polling. Uses gstack + CE skills automatically throughout.
   gstack handles decision-making (CEO/eng review) and real browser QA.
   CE handles planning, deep review, and compound knowledge accumulation.
   Takes a doc input (feature spec, brainstorm, plan).
-  Built on VoxParty's TDD philosophy. Designed to run autonomously for hours,
-  self-correcting via rollback and checkpointing. Use when you want to start a long-running
-  autonomous improvement cycle or when you say "run the loop" or "TDD loop".
+  Built on TDD philosophy. Designed to run autonomously for hours,
+  self-correcting via rollback and checkpointing. Project-agnostic — configure per project.
+  Use when you want to start a long-running autonomous improvement cycle
+  or when you say "run the loop" or "TDD loop".
 allowed-tools:
   - Bash
   - Read
@@ -42,7 +43,7 @@ This skill acts as the **Manager** of an autonomous DevOps team. It coordinates:
 - gstack handles "做不做" (whether to do) and "真实测" (real browser testing)
 - CE handles "怎么做" (how to plan), "做得好不好" (deep review), and "记住" (knowledge accumulation)
 
-**VoxParty TDD Philosophy (from ~/Documents/voxparty/CLAUDE.md):**
+**TDD Philosophy:****
 - TDD is mandatory: write failing tests before implementing
 - Never modify tests to make a failing suite pass
 - Every failing test must be investigated and resolved
@@ -86,13 +87,15 @@ CE's `/ce:compound` spawns 3 parallel agents (Context Analyzer, Solution Extract
 /axloop <path-to-doc> [rapid|quality|auto]
 ```
 
+**First invocation starts the Manager** — it stays alive for the entire session. Subsequent invocations update the input doc or mode.
+
 **Examples:**
-- `/axloop ~/Documents/voxparty/docs/plans/2026-03-29-002-feat-auto-cycle-plan.md`
+- `/axloop ~/myproject/docs/feature-plan.md`
 - `/axloop ~/myfeature.md rapid`
 - `/axloop ./brainstorm.md quality`
 
 **Arguments:**
-- `path-to-doc` (required): Path to the input document
+- `path-to-doc` (required): Path to the input document (feature spec, brainstorm, or plan)
 - `mode` (optional, default: auto): `rapid` (max velocity), `quality` (strict regression), `auto` (dynamic balance)
 
 ## How the Team Works
@@ -102,7 +105,7 @@ CE's `/ce:compound` spawns 3 parallel agents (Context Analyzer, Solution Extract
 Communication is via `SendMessage`. Files are only for state persistence and human visibility. Skills are the execution layer. **Directories are auto-created as needed** — Manager creates worktree/, docs/solutions/, and any state subdirectories without asking.
 
 ```
-worktree/.backlog.json          — bug backlog
+worktree/.backlog.json          — bug backlog (all severities: panic, assertion, compilation, flaky)
 worktree/.feature-backlog.json   — feature backlog (PM owns)
 worktree/.loop-status.json      — live view of every agent: each agent has a 1-sentence current-status field visible to human at all times
 worktree/.loop.log              — append-only event log (human readable)
@@ -112,19 +115,23 @@ worktree/.proposals/<dev_id>/<item_id>.json — developer fix proposal
 worktree/.designs/<feature_id>.md — designer specs
 worktree/.approved/<item_id>    — QA/DevOps approval marker
 worktree/.rejected/<item_id>    — QA/DevOps rejection reason
+worktree/.crash-report/<item_id>.json — crash/panic output, backtrace, severity
+worktree/.rollback/<item_id>    — rollback reason and from_sha
 ```
 
-### Event-Driven Lifecycle — Manager Watches and Reacts
+### The Manager Loop — How It Actually Runs Continuously
 
-The Manager runs a continuous event loop. It watches state files and reacts to signals — no fixed sequence, no waiting. **Everything is async.** The Manager pipelines multiple items through different stages simultaneously.
+The Manager is a **persistent background agent**. It does NOT exit after spawning workers. It continuously monitors state files and reacts. Two mechanisms work together:
 
-**The Manager's continuous loop:**
+**How the Manager stays alive:**
+The Manager is spawned as a persistent background agent (`run_in_background: true`). It does NOT exit after spawning workers — it stays alive waiting for SendMessage. Sub-agents wake it up by messaging when they complete. The Manager reacts immediately, spawns the next wave of agents, then goes back to waiting. This is purely event-driven — no cron, no polling. The Manager loop continues as long as the Claude Code session is alive.
 
-```
-LOOP (always running):
-  Read .backlog.json, .loop-status.json, gh pr list, .approved/, .rejected/
-  React to whichever events are ready — spawn all at once, don't wait
-```
+**SendMessage is the hook.** No polling, no cron — the Manager is woken only when:
+- A sub-agent SendMessage completes (dev finishes investigation, QA finishes review, etc.)
+- A state file is written (.approved/, .rejected/, .proposals/, .rollback/)
+
+**If everything is idle and the Manager has no pending work:**
+The Manager runs `cargo test` to find new failures, parses the output, writes to backlog, and assigns. This is the "idle sweep" — triggered by the Manager going idle with nothing in its queue.
 
 **Event → Action mapping (Manager decides what to do next, all async):**
 
@@ -133,26 +140,32 @@ EVENT: backlog has unassigned items AND devs are available
 ACTION: assign multiple items at once — Dev1 on item_A, Dev2 on item_B, Dev3 on item_C...
 (no waiting for Dev1 to finish before assigning Dev2)
 
+EVENT: cargo test finds new failures (parsed from test output)
+ACTION: write to .backlog.json with severity, assign to available dev
+
+EVENT: cargo test panics (panic in game runtime detected)
+ACTION: create crash backlog item, assign to dev immediately, skip normal queue if severe
+
 EVENT: a dev writes worktree/.proposals/<dev_id>/<item_id>.json (PR opened)
 ACTION: immediately spawn DevOps → "check build for <item_id>"
-(don't wait for other PRs or other pipeline stages)
 
 EVENT: DevOps writes worktree/.deploy-state.json with build_pass=true
 ACTION: immediately spawn QA → "regression + design check for <item_id>"
-(don't wait for other items in the pipeline)
 
 EVENT: QA writes worktree/.approved/<item_id>
 ACTION: immediately spawn DevOps → "merge + deploy <item_id>"
-(don't wait for QA to finish on other items)
 
 EVENT: QA writes worktree/.rejected/<item_id>
 ACTION: immediately re-assign item to dev with rejection notes
 
-EVENT: DevOps smoke test fails
+EVENT: DevOps smoke test fails (.rollback/* written)
 ACTION: immediately rollback: git revert → re-assign to dev
 
 EVENT: smoke test passes
 ACTION: run /ce:compound → close backlog item
+
+EVENT: all devs idle AND backlog empty
+ACTION: run cargo test to find new failures (keep loop alive)
 
 EVENT: 10 cycles completed
 ACTION: run /ce:simplify — full codebase quality sweep
@@ -170,13 +183,15 @@ QA: smoke fail on item_C → rollback | Dev1: already starting item_D ...
 **The Manager never waits for one stage to empty before feeding the next.** Keep every worker busy at all times. If devs are idle and backlog has items, assign. If QA is idle and any build passed, start regression. If DevOps is idle and any item approved, start deploy.
 
 **Priority order when multiple events compete:**
-1. Rollback (smoke fail) — stop everything, fix now
-2. Rejection (dev must retry)
-3. Approval (deploy while fresh)
-4. Build pass (keep pipeline moving)
-5. New PR ready for build
-6. Unassigned backlog items (keep devs busy)
-7. Cycle cleanup (compound + retro)
+1. Crash/panic (runtime failure) — game is broken, stop everything
+2. Rollback (smoke fail) — deployed code is broken
+3. Rejection (dev must retry)
+4. Approval (deploy while fresh)
+5. Build pass (keep pipeline moving)
+6. New PR ready for build
+7. Unassigned backlog items (keep devs busy)
+8. No work found → run cargo test to find failures
+9. Cycle cleanup (compound + retro)
 
 ### Skill → Phase Reference
 
@@ -264,7 +279,7 @@ Manager spawns each sub-agent via `Agent` tool with `run_in_background: true`. E
 
 **QA:** review → qa → SendMessage → Manager
 
-**DevOps:** cargo build → browse (smoke) → canary → SendMessage → Manager
+**DevOps:** cargo build → cargo run (game smoke test — verify binary starts without panic) → browse → canary → SendMessage → Manager
 
 ## Modes
 
@@ -357,11 +372,21 @@ The loop is designed to run for hours without human intervention. Risk mitigatio
 3. Third attempt: escalate — write to backlog with `blocked` status, request human review
 4. Rollback at any smoke/regression failure — never wait for human to notice
 
-- **Engine**: `~/Documents/voxparty/.worktrees/engine/`
-- **Memory**: `~/Users/tengpeng/.claude/projects/-Users-tengpeng-Documents-voxparty/memory/`
-- **Branch**: `feat/engine`
-- **Test command**: `cargo test`
-- **Build command**: `cargo build`
+## Project Configuration
+
+The axloop skill is project-agnostic. Configure per-project by updating these paths in the skill or passing them at invocation:
+
+- **Worktree path**: Where the codebase lives (e.g. `~/Documents/voxparty/.worktrees/engine/`)
+- **Test command**: How to run tests (e.g. `cargo test`, `npm test`, `pytest`)
+- **Build command**: How to build (e.g. `cargo build`, `npm run build`)
+- **Binary start command**: How to run the app/binary (e.g. `cargo run --`, `npm start`)
+- **Smoke test**: Brief run of the binary to verify it starts without panic (e.g. `<start cmd> --headless 2>&1 | head -20`)
+- **Memory path**: Where compound knowledge docs are stored
+- **Branch**: The target branch for PRs (e.g. `feat/engine`, `main`)
+
+**Crash detection**: Parse test output for panics or crashes (e.g. `thread panicked at`, `Segmentation fault`, `panic:`, `Error:`). Write to `.backlog.json` as `severity: crash` — these escalate immediately above all other priorities.
+
+**axloop skill development note:** This skill develops itself. When axloop is used on a project, it operates on that project's codebase. The skill's own development (SKILL.md, docs) stays in `~/Documents/skills/Axloop/`.
 
 ## Exit Conditions
 

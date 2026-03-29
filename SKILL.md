@@ -114,39 +114,66 @@ worktree/.approved/<item_id>    — QA/DevOps approval marker
 worktree/.rejected/<item_id>    — QA/DevOps rejection reason
 ```
 
-### The Full Team Lifecycle (SendMessage-driven)
+### Event-Driven Lifecycle — Manager Watches and Reacts
+
+The Manager runs a continuous event loop. It watches state files and reacts to signals — no fixed sequence, no waiting for human input. The Manager figures out what to do next based on what happened.
+
+**The Manager's continuous loop:**
 
 ```
-PM SendMessage → Manager: "here is the prioritized feature backlog"
-Manager SendMessage → Designer: "here is your feature item, produce a spec"
-Manager SendMessage → Dev1, Dev2, ... DevN: "here is your item, start"
-Dev1-N (parallel):
-  1. /investigate <failing-test> — root cause investigation
-  2. Write fix to source file
-  3. /simplify — review the fix for quality/efficiency before PR
-  4. /review — pre-PR review
-  5. gh pr create
-  6. SendMessage → Manager: "PR ready: <item_id>"
-Designer: writes .designs/<id>.md → /design-review → SendMessage → Manager: "spec ready"
-Manager SendMessage → DevOps: "check build for PR <item_id>"
-DevOps: cargo build → SendMessage → Manager: "build pass/fail"
-Manager SendMessage → QA: "run regression + design check for <item_id>"
-QA:
-  1. /review — code quality review of the PR
-  2. /qa — functional testing
-  3. SendMessage → Manager: "approved/rejected: <item_id>"
-Manager SendMessage → DevOps: "merge + deploy <item_id>" (if approved)
-DevOps:
-  1. gh pr merge → cargo build
-  2. /browse → smoke test (navigate, verify page loads, check console errors)
-  3. /canary — post-deploy monitoring for 5 minutes
-  4. SendMessage → Manager: "deployed OK" or "rollback needed"
-  5. If rollback needed: git revert → re-assign to dev
-Manager: after every cycle → /retro — analyze what worked/what didn't, update memory
-Manager: after every cycle → /ce:compound — build searchable knowledge base (context, solution, prevention)
-Manager: after every 10 cycles → /simplify — full codebase quality sweep
-Manager updates .loop-status.json at every step — each agent's 1-sentence current status always visible to human
+LOOP (always running):
+  Read .backlog.json, .loop-status.json, gh pr list, .approved/, .rejected/
+  React to whichever event is ready:
 ```
+
+**Event → Action mapping (Manager decides what to do next):**
+
+```
+EVENT: a dev writes worktree/.proposals/<dev_id>/<item_id>.json (PR opened)
+ACTION: Manager spawns DevOps → "check build for <item_id>"
+
+EVENT: DevOps writes worktree/.deploy-state.json with build_pass=true
+ACTION: Manager spawns QA → "regression + design check for <item_id>"
+
+EVENT: QA writes worktree/.approved/<item_id> (approval)
+ACTION: Manager spawns DevOps → "merge + deploy <item_id>"
+
+EVENT: QA writes worktree/.rejected/<item_id> (rejection)
+ACTION: Manager re-assigns item to dev with rejection notes
+
+EVENT: DevOps smoke test fails
+ACTION: Manager triggers rollback automatically: git revert → re-assign to dev
+
+EVENT: smoke test passes
+ACTION: Manager runs /ce:compound → write knowledge doc → close backlog item
+
+EVENT: backlog has items, no dev assigned
+ACTION: Manager assigns to first available dev
+
+EVENT: 10 cycles completed
+ACTION: Manager runs /ce:simplify — full codebase quality sweep
+
+EVENT: dev sends SendMessage "PR ready: <item_id>"
+ACTION: Manager reads proposal → updates .loop-status.json → continues pipeline
+```
+
+**What the Manager checks on every iteration:**
+1. Any new PRs opened? → DevOps build check
+2. Any build passed? → QA regression
+3. Any QA approved? → DevOps merge + deploy
+4. Any smoke failed? → Rollback + re-assign
+5. Any backlog items unassigned? → Assign to dev
+6. Any cycle done? → /ce:compound + /retro
+7. Every 10 cycles? → /ce:simplify sweep
+
+**The Manager never waits.** If multiple events are ready, process them in priority order:
+1. Rollback (smoke fail) — highest priority
+2. Rejection (dev must retry)
+3. Approval (deploy while fresh)
+4. Build pass (keep pipeline moving)
+5. New PR (start pipeline)
+6. Unassigned items (keep devs busy)
+7. Cycle cleanup (compound + retro)
 
 ### Skill → Phase Reference
 
@@ -222,6 +249,7 @@ Manager updates .loop-status.json at every step — each agent's 1-sentence curr
 - Skill: invokes gstack skills — `/investigate`, `/simplify`, `/review`, `/retro`, `/canary`, `/browse`, `/qa`, `/design-review` — and CE skills — `/ce:plan`, `/ce:review`, `/ce:compound`
 - Never: does not directly approve/reject — QA/DevOps do that
 - **Auto-create allowed**: Manager creates state directories (worktree/ subdirs, docs/solutions/, etc.) and repos as needed — no permission needed from human
+- **Always running**: Manager continuously checks state files and reacts to events — never idle while work exists
 
 ### Sub-Agent Spawning
 
@@ -281,6 +309,8 @@ cat worktree/.loop.log           # event history
 cat worktree/.backlog.json       # bug backlog
 cat worktree/.deploy-state.json  # last SHA + health
 gh pr list                      # all open PRs
+cat worktree/.approved/<item_id> # QA approval
+cat worktree/.rejected/<item_id> # QA rejection
 ```
 
 **`.loop-status.json` live status schema** — each agent writes a 1-sentence current status:

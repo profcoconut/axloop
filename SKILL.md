@@ -43,10 +43,25 @@ This skill acts as the **Manager** of an autonomous DevOps team. It coordinates:
 - gstack handles "做不做" (whether to do) and "真实测" (real browser testing)
 - CE handles "怎么做" (how to plan), "做得好不好" (deep review), and "记住" (knowledge accumulation)
 
-**TDD Philosophy:****
+**TDD Philosophy:**
 - TDD is mandatory: write failing tests before implementing
 - Never modify tests to make a failing suite pass
 - Every failing test must be investigated and resolved
+
+## Manager's 10 Laws — The Constitution
+
+**These are non-negotiable. Violating any of these breaks the loop's self-healing properties.**
+
+1. **Never push to main/feat directly.** All code goes through PR. Always.
+2. **Never merge without smoke test passing.** Deploy only after DevOps confirms smoke pass.
+3. **Never leave the repo in a broken state.** Every fix must pass tests before commit. If interrupted, revert first.
+4. **Never skip rollback on smoke failure.** If deployed code fails smoke, rollback immediately — don't wait, don't ask.
+5. **Never write to main/feat branch.** Feature branches only. Manager merges via PR.
+6. **Always write loop.log.** Every state change is appended — without it, session resume doesn't work.
+7. **Always write cycle-wip before session ends.** If the session dies mid-fix, the next Manager must be able to resume.
+8. **Always assign when devs are idle and backlog has items.** Never let workers idle while work exists.
+9. **Always spawn in parallel, never sequentially.** If multiple events are ready, spawn all at once. Never wait for one to finish before spawning the next.
+10. **Always reconcile on startup.** New session reads all state files before acting. Never assume the repo is clean or empty.
 
 ## Gstack Skills as Execution Layer
 
@@ -122,17 +137,21 @@ worktree/.rollback/<item_id>    — rollback reason and from_sha
 
 ### The Manager Loop — How It Actually Runs Continuously
 
-The Manager is a **persistent background agent**. It does NOT exit after spawning workers. It continuously monitors state files and reacts. Two mechanisms work together:
+The Manager is a **persistent background agent**. It does NOT exit after spawning workers. It continuously monitors state files and reacts. **Everything is parallel by default.**
 
-**How the Manager stays alive:**
-The Manager is spawned as a persistent background agent (`run_in_background: true`). It does NOT exit after spawning workers — it stays alive waiting for SendMessage. Sub-agents wake it up by messaging when they complete. The Manager reacts immediately, spawns the next wave of agents, then goes back to waiting. This is purely event-driven — no cron, no polling. The Manager loop continues as long as the Claude Code session is alive.
+**SendMessage is the only hook.** No polling, no cron — the Manager is woken only when a sub-agent SendMessage completes or a state file is written.
 
-**SendMessage is the hook.** No polling, no cron — the Manager is woken only when:
-- A sub-agent SendMessage completes (dev finishes investigation, QA finishes review, etc.)
-- A state file is written (.approved/, .rejected/, .proposals/, .rollback/)
+**ALWAYS spawn in parallel. Never wait.**
+- When assigning devs: spawn ALL available devs at once, not one-by-one
+- When a PR opens: spawn DevOps immediately, don't wait
+- When build passes: spawn QA immediately, don't wait
+- When QA approves: spawn DevOps merge immediately, don't wait
+- When smoke fails: spawn rollback immediately, don't wait
+- When `/ce:compound` runs: spawns 3 agents in parallel already
+- When `/ce:review` runs: spawns 6-15 agents in parallel already
 
-**If everything is idle and the Manager has no pending work:**
-The Manager runs the test command to find new failures, parses the output, writes to backlog, and assigns. This is the "idle sweep" — triggered by the Manager going idle with nothing in its queue.
+**If the Manager has no pending work and nothing is active:**
+Run the test command to find new failures, parse output, write to backlog, assign to devs. This is the idle sweep — keep everyone busy.
 
 ### Session Resume — How a New Session Picks Up
 

@@ -116,63 +116,66 @@ worktree/.rejected/<item_id>    — QA/DevOps rejection reason
 
 ### Event-Driven Lifecycle — Manager Watches and Reacts
 
-The Manager runs a continuous event loop. It watches state files and reacts to signals — no fixed sequence, no waiting for human input. The Manager figures out what to do next based on what happened.
+The Manager runs a continuous event loop. It watches state files and reacts to signals — no fixed sequence, no waiting. **Everything is async.** The Manager pipelines multiple items through different stages simultaneously.
 
 **The Manager's continuous loop:**
 
 ```
 LOOP (always running):
   Read .backlog.json, .loop-status.json, gh pr list, .approved/, .rejected/
-  React to whichever event is ready:
+  React to whichever events are ready — spawn all at once, don't wait
 ```
 
-**Event → Action mapping (Manager decides what to do next):**
+**Event → Action mapping (Manager decides what to do next, all async):**
 
 ```
+EVENT: backlog has unassigned items AND devs are available
+ACTION: assign multiple items at once — Dev1 on item_A, Dev2 on item_B, Dev3 on item_C...
+(no waiting for Dev1 to finish before assigning Dev2)
+
 EVENT: a dev writes worktree/.proposals/<dev_id>/<item_id>.json (PR opened)
-ACTION: Manager spawns DevOps → "check build for <item_id>"
+ACTION: immediately spawn DevOps → "check build for <item_id>"
+(don't wait for other PRs or other pipeline stages)
 
 EVENT: DevOps writes worktree/.deploy-state.json with build_pass=true
-ACTION: Manager spawns QA → "regression + design check for <item_id>"
+ACTION: immediately spawn QA → "regression + design check for <item_id>"
+(don't wait for other items in the pipeline)
 
-EVENT: QA writes worktree/.approved/<item_id> (approval)
-ACTION: Manager spawns DevOps → "merge + deploy <item_id>"
+EVENT: QA writes worktree/.approved/<item_id>
+ACTION: immediately spawn DevOps → "merge + deploy <item_id>"
+(don't wait for QA to finish on other items)
 
-EVENT: QA writes worktree/.rejected/<item_id> (rejection)
-ACTION: Manager re-assigns item to dev with rejection notes
+EVENT: QA writes worktree/.rejected/<item_id>
+ACTION: immediately re-assign item to dev with rejection notes
 
 EVENT: DevOps smoke test fails
-ACTION: Manager triggers rollback automatically: git revert → re-assign to dev
+ACTION: immediately rollback: git revert → re-assign to dev
 
 EVENT: smoke test passes
-ACTION: Manager runs /ce:compound → write knowledge doc → close backlog item
-
-EVENT: backlog has items, no dev assigned
-ACTION: Manager assigns to first available dev
+ACTION: run /ce:compound → close backlog item
 
 EVENT: 10 cycles completed
-ACTION: Manager runs /ce:simplify — full codebase quality sweep
-
-EVENT: dev sends SendMessage "PR ready: <item_id>"
-ACTION: Manager reads proposal → updates .loop-status.json → continues pipeline
+ACTION: run /ce:simplify — full codebase quality sweep
 ```
 
-**What the Manager checks on every iteration:**
-1. Any new PRs opened? → DevOps build check
-2. Any build passed? → QA regression
-3. Any QA approved? → DevOps merge + deploy
-4. Any smoke failed? → Rollback + re-assign
-5. Any backlog items unassigned? → Assign to dev
-6. Any cycle done? → /ce:compound + /retro
-7. Every 10 cycles? → /ce:simplify sweep
+**Pipeline parallelism — multiple items in different stages at the same time:**
 
-**The Manager never waits.** If multiple events are ready, process them in priority order:
-1. Rollback (smoke fail) — highest priority
+```
+Dev1: investigating item_A        | Dev2: writing fix item_B      | Dev3: reviewing item_C ...
+DevOps: building item_B PR         | QA: running regression on item_A
+DevOps: deploying item_C           | QA: running regression on item_B
+QA: smoke fail on item_C → rollback | Dev1: already starting item_D ...
+```
+
+**The Manager never waits for one stage to empty before feeding the next.** Keep every worker busy at all times. If devs are idle and backlog has items, assign. If QA is idle and any build passed, start regression. If DevOps is idle and any item approved, start deploy.
+
+**Priority order when multiple events compete:**
+1. Rollback (smoke fail) — stop everything, fix now
 2. Rejection (dev must retry)
 3. Approval (deploy while fresh)
 4. Build pass (keep pipeline moving)
-5. New PR (start pipeline)
-6. Unassigned items (keep devs busy)
+5. New PR ready for build
+6. Unassigned backlog items (keep devs busy)
 7. Cycle cleanup (compound + retro)
 
 ### Skill → Phase Reference

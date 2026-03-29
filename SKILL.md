@@ -1,12 +1,14 @@
 ---
 name: axloop
 preamble-tier: 2
-version: 1.1.0
+version: 1.2.0
 description: |
   Autonomous AI-driven DevOps team that runs like a real company.
   A manager coordinates: 4 developers (parallel PRs), a designer (specs),
   QA (regression + design verification), and DevOps (build gate + deploy + smoke test).
-  Event-driven, no cron. Uses gstack skills automatically throughout the workflow.
+  Event-driven, no cron. Uses gstack + CE skills automatically throughout the workflow.
+  gstack handles decision-making (CEO/eng review) and real browser QA.
+  CE handles planning, deep review, and compound knowledge accumulation.
   Takes a doc input (feature spec, brainstorm, plan).
   Built on VoxParty's TDD philosophy. Use when you want to start a long-running
   autonomous improvement cycle or when you say "run the loop" or "TDD loop".
@@ -31,7 +33,13 @@ This skill acts as the **Manager** of an autonomous DevOps team. It coordinates:
 - **1 QA** — regression tests + design verification gate
 - **1 DevOps** — build gate, deploy pipeline, smoke tests, rollback
 
-**Every agent uses gstack skills automatically** as part of their workflow. Skills are not optional — they are the execution layer.
+**Every agent uses skills automatically** as part of their workflow. Skills are not optional — they are the execution layer.
+
+**gstack + CE dual-skill architecture:**
+- **gstack**: Decision-layer skills — `/plan-ceo-review` (product), `/plan-eng-review` (architecture), `/qa` (browser QA), `/investigate` (root cause), `/simplify` (quality)
+- **CE**: Execution-layer skills — `/ce:plan` (spawns research agents, reads historical learnings), `/ce:review` (6-15 parallel specialized reviewers), `/ce:compound` (builds searchable knowledge base from sessions)
+- gstack handles "做不做" (whether to do) and "真实测" (real browser testing)
+- CE handles "怎么做" (how to plan), "做得好不好" (deep review), and "记住" (knowledge accumulation)
 
 **VoxParty TDD Philosophy (from ~/Documents/voxparty/CLAUDE.md):**
 - TDD is mandatory: write failing tests before implementing
@@ -46,11 +54,11 @@ Each team role has gstack skills baked into their workflow. Agents invoke skills
 
 | Role | Primary Skills | When Used |
 |------|---------------|-----------|
-| **Manager** | `/investigate` (root cause), `/simplify` (code quality), `/review` (PR review), `/retro` (cycle analysis) | Every cycle — after each fix, after regressions, weekly |
-| **Developer** | `/investigate` (debug), `/simplify` (quality), `/review` (before PR) | Before opening PR — every fix goes through review |
-| **QA** | `/review` (code review), `/qa` (functional test) | Every PR — regression + design verification |
-| **DevOps** | `/browse` (smoke test), `/canary` (post-deploy), `/simplify` (build quality) | Every deploy — smoke test + canary check |
-| **Designer** | `/design-review` (UI check), `/browse` (visual) | Every design spec — before approving |
+| **Manager** | gstack: `/investigate`, `/simplify`, `/retro`; CE: `/ce:plan`, `/ce:review`, `/ce:compound` | `/ce:compound` after every cycle to build knowledge; `/ce:plan` for feature planning |
+| **Developer** | gstack: `/investigate` (debug), `/simplify` (quality), `/review` (before PR) | Before opening PR — every fix goes through review |
+| **QA** | gstack: `/review`, `/qa`; CE: `/ce:review` (6-15 specialized reviewers) | Every PR — regression + design + deep code review |
+| **DevOps** | gstack: `/browse` (smoke test), `/canary` (post-deploy), `/simplify` (build quality) | Every deploy — smoke test + canary check |
+| **Designer** | gstack: `/design-review` (UI check), `/browse` (visual) | Every design spec — before approving |
 
 ### Skill Invocation Pattern
 
@@ -63,6 +71,13 @@ Every agent uses this pattern:
 ```
 
 **Never skip a skill phase.** Skills are the quality gate, not optional polish.
+
+**CE compound step (Manager only — after every cycle):**
+After a fix is merged or a rollback completes, run `/ce:compound` to build the knowledge base:
+```
+/ce:compound "<session summary: what was fixed, what failed, what worked>"
+```
+CE's `/ce:compound` spawns 3 parallel agents (Context Analyzer, Solution Extractor, Related Docs Finder) and writes a structured doc to `docs/solutions/` — this compound knowledge is searchable by future `/ce:plan` calls via learnings-researcher.
 
 ## Invocation
 
@@ -127,6 +142,7 @@ DevOps:
   4. SendMessage → Manager: "deployed OK" or "rollback needed"
   5. If rollback needed: git revert → re-assign to dev
 Manager: after every cycle → /retro — analyze what worked/what didn't, update memory
+Manager: after every cycle → /ce:compound — build searchable knowledge base (context, solution, prevention)
 Manager: after every 10 cycles → /simplify — full codebase quality sweep
 Manager updates .loop-status.json at every step (human visibility)
 ```
@@ -178,6 +194,21 @@ Manager updates .loop-status.json at every step (human visibility)
 /retro "<analyze this cycle: what failed, what succeeded, what to improve>"
 ```
 
+**Knowledge compound** (Manager — after every cycle):
+```bash
+/ce:compound "<session summary: what was fixed, what failed, what worked, root cause if debugged>"
+```
+
+**Deep planning** (Manager — when starting a new feature):
+```bash
+/ce:plan "<feature description from input doc>"
+```
+
+**Deep review** (Manager or QA — for complex PRs):
+```bash
+/ce:review "<review the diff for this PR — triggers 6-15 specialized reviewers>"
+```
+
 ### Manager's Tools & Constraints
 
 **Allowed tools:** Bash, Read, Write, Edit, Grep, Glob, Agent, WebSearch, Skill
@@ -187,7 +218,7 @@ Manager updates .loop-status.json at every step (human visibility)
 - Write: .backlog.json, .loop-status.json, .deploy-state.json, memory entries
 - Edit: source files only — never modifies tests
 - Agent: spawns all sub-agents (developer, QA, DevOps, Designer)
-- Skill: invokes gstack skills — `/investigate`, `/simplify`, `/review`, `/retro`, `/canary`, `/browse`, `/qa`, `/design-review`
+- Skill: invokes gstack skills — `/investigate`, `/simplify`, `/review`, `/retro`, `/canary`, `/browse`, `/qa`, `/design-review` — and CE skills — `/ce:plan`, `/ce:review`, `/ce:compound`
 - Never: does not directly approve/reject — QA/DevOps do that
 
 ### Sub-Agent Spawning
@@ -206,12 +237,16 @@ Manager spawns each sub-agent via `Agent` tool with `run_in_background: true`. E
 
 | Mode | Developers | Designer | QA | Deploy | Skill Usage |
 |------|-----------|---------|-----|--------|-------------|
-| rapid | 4 parallel | optional | specific test only | always | skip /canary, /simplify optional |
-| quality | 1 at a time | required | full regression suite | always after QA | all skills mandatory |
-| auto | 4 parallel | optional | quality if regressions exist | always | /canary + /simplify every 10 cycles |
+| rapid | 4 parallel | optional | specific test only | always | skip /canary, /simplify optional; `/ce:compound` after cycle |
+| quality | 1 at a time | required | full regression suite | always after QA | all gstack skills + CE deep review mandatory |
+| auto | 4 parallel | optional | quality if regressions exist | always | /canary + /simplify every 10 cycles; `/ce:compound` after cycle |
 
-## Memory Persistence
+## Memory Persistence & Knowledge Accumulation
 
+**CE compound knowledge base (primary — searchable across all future sessions):**
+After each fix or rollback, run `/ce:compound` to write a structured doc to `docs/solutions/`. This is the project's compound knowledge — future `/ce:plan` calls find it via learnings-researcher. CE's approach solves **accumulation** (not just continuity): every session contributes to a searchable knowledge base that all future sessions can leverage.
+
+**gstack memory entries (append-only — for human review):**
 After each fix or rollback, manager writes to `{memory-dir}/YYYYMMDD-HHMMSS-<slug>.md`:
 
 ```markdown
@@ -230,6 +265,11 @@ outcome: succeeded
 ```
 
 Memory entries are append-only. Same bug recurs → new entry with `attempt: N+1`.
+
+**CE vs gstack memory distinction:**
+- gstack memory entries (this file): human-readable, append-only, session-scoped
+- CE compound docs (`docs/solutions/`): machine-searchable, deduplicated, project-wide knowledge base
+- Both compound over time. CE's `docs/solutions/` is the primary knowledge layer; gstack memory is the session continuity layer.
 
 ## Visual Verification
 

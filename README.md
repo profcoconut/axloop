@@ -4,6 +4,8 @@ Autonomous AI-driven DevOps team skill for Claude Code. Models a real software t
 
 Built for long-running autonomous improvement cycles on VoxParty, but framework-agnostic.
 
+**Dual-skill architecture:** gstack (decision + browser QA) + CE (planning + deep review + compound knowledge)
+
 ## Usage
 
 ```
@@ -34,9 +36,30 @@ PRODUCT MANAGER → MANAGER → Designer, DevOps, QA
 - **QA**: regression tests + design verification gate
 - **DevOps**: build gate, deploy pipeline, smoke tests, rollback
 
+## Skill Architecture
+
+**gstack** handles decision-making and real browser testing:
+- `/plan-ceo-review`, `/plan-eng-review` — product and architecture review
+- `/qa` — browser-based functional testing
+- `/investigate`, `/simplify`, `/retro` — root cause, quality, cycle analysis
+
+**CE** handles planning depth and compound knowledge:
+- `/ce:plan` — spawns research agents, reads historical learnings
+- `/ce:review` — 6-15 specialized parallel reviewers
+- `/ce:compound` — builds searchable knowledge base after each cycle
+
 ## Communication
 
 All agents communicate via `SendMessage`. Files are for state persistence and human visibility only.
+
+## Knowledge Accumulation
+
+After every cycle, `/ce:compound` writes a structured doc to `docs/solutions/` capturing:
+- Context: what was fixed, what failed
+- Solution: root cause and fix
+- Prevention: how to avoid it in the future
+
+This knowledge is searchable by future `/ce:plan` calls — the longer axloop runs, the smarter it gets.
 
 ## Status Files
 

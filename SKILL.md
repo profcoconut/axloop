@@ -99,10 +99,11 @@ All run automatically. No skipping.
 3. Write loop.log + cycle-wip before session ends
 4. Write CE compound docs after every cycle
 
-**Session Loop** (Manager — ALWAYS use subagents in parallel):
-5. Manager never does work itself — always spawn subagents
-6. Workers validate and report to Manager only — Manager handles conflicts
-7. Spawn ALL subagents in parallel — never wait for one to finish
+**Session Loop**:
+5. Manager never does work — always spawn workers
+6. Workers never do each other's work — each role stays in their lane
+7. Workers validate and report to Manager only — Manager handles conflicts
+8. Spawn ALL subagents in parallel — never wait for one to finish
 
 ## Setup (per project)
 

@@ -63,6 +63,16 @@ After every cycle, `/ce:compound` writes a structured doc to `docs/solutions/` c
 
 This knowledge is searchable by future `/ce:plan` calls — the longer axloop runs, the smarter it gets.
 
+## Session Resume
+
+The loop survives session deaths. All state is in `worktree/` files:
+- `.loop.log` — full event history
+- `.loop-status.json` — what each agent was doing
+- `.cycle-wip` — interrupted cycle state (resume from WIP, not restart)
+- `.backlog.json`, `.deploy-state.json`, open PRs
+
+New session reads these files and resumes the pipeline from where it left off. No work is lost.
+
 ## Status Files
 
 ```bash

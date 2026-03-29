@@ -105,10 +105,11 @@ CE's `/ce:compound` spawns 3 parallel agents (Context Analyzer, Solution Extract
 Communication is via `SendMessage`. Files are only for state persistence and human visibility. Skills are the execution layer. **Directories are auto-created as needed** — Manager creates worktree/, docs/solutions/, and any state subdirectories without asking.
 
 ```
-worktree/.backlog.json          — bug backlog (all severities: panic, assertion, compilation, flaky)
+worktree/.backlog.json          — bug backlog (all severities: crash, panic, assertion, compilation, flaky)
 worktree/.feature-backlog.json   — feature backlog (PM owns)
 worktree/.loop-status.json      — live view of every agent: each agent has a 1-sentence current-status field visible to human at all times
-worktree/.loop.log              — append-only event log (human readable)
+worktree/.loop.log              — append-only event log (human readable, critical for session resume)
+worktree/.cycle-wip             — interrupted cycle state: what dev was doing when session died
 worktree/.loop-mode             — current mode (rapid/quality/auto)
 worktree/.deploy-state.json     — last SHA, health, regressions
 worktree/.proposals/<dev_id>/<item_id>.json — developer fix proposal
@@ -131,7 +132,57 @@ The Manager is spawned as a persistent background agent (`run_in_background: tru
 - A state file is written (.approved/, .rejected/, .proposals/, .rollback/)
 
 **If everything is idle and the Manager has no pending work:**
-The Manager runs `cargo test` to find new failures, parses the output, writes to backlog, and assigns. This is the "idle sweep" — triggered by the Manager going idle with nothing in its queue.
+The Manager runs the test command to find new failures, parses the output, writes to backlog, and assigns. This is the "idle sweep" — triggered by the Manager going idle with nothing in its queue.
+
+### Session Resume — How a New Session Picks Up
+
+When a new Claude Code session starts and the Manager is invoked, it first reads all state files to understand where things left off. **No work is lost when a session dies** — everything persistent survives.
+
+**Manager resume protocol (runs on every /axloop invocation):**
+
+```
+1. Read .loop.log          → understand full history of what happened
+2. Read .loop-status.json   → what was each agent doing when session died
+3. Read .backlog.json       → what items exist and their statuses
+4. Read .deploy-state.json  → last known good SHA and health
+5. Read any .cycle-wip      → was a cycle interrupted mid-fix?
+6. Read .approved/ and .rejected/ → what QA already decided
+7. Check gh pr list          → what PRs are open but not merged
+8. Reconcile: for each open PR without .approved or .rejected, continue its pipeline stage
+9. For each .cycle-wip: resume from the WIP state instead of restarting
+10. For items marked "assigned" but no recent activity: check if the dev agent is still alive — if not, reassign
+11. Resume the loop from where it was
+```
+
+**Reconciliation rules:**
+- PR opened but no build check → spawn DevOps build check
+- Build passed but no QA → spawn QA
+- QA approved but not merged → spawn DevOps merge+deploy
+- Item assigned but dev is dead (no recent status update) → reassign to another dev
+- WIP cycle exists → resume from investigation state, don't restart
+
+**The Manager never assumes a session died cleanly.** It always verifies the actual state of everything before continuing.
+
+**`.cycle-wip` schema** — written when a cycle is interrupted mid-fix:
+```json
+{
+  "item_id": "item-042",
+  "dev_id": "dev_1",
+  "step": "regression-test",
+  "investigation_state": "found root cause: off-by-one in grid index calculation",
+  "fix_draft": "src/core/isom.rs line 234 — changed > to >=",
+  "interrupted_at": "2026-03-29T14:23:00Z",
+  "test_results_so_far": "cargo test isom::test_grid_to_screen — FAILED still"
+}
+```
+
+**`.loop.log` schema** — append-only event log, critical for session recovery:
+```json
+{"ts": "2026-03-29T14:20:00Z", "event": "dev_1 assigned item-042", "actor": "manager"}
+{"ts": "2026-03-29T14:21:00Z", "event": "dev_1 investigation started", "actor": "dev_1"}
+{"ts": "2026-03-29T14:22:00Z", "event": "dev_1 PR opened", "actor": "dev_1"}
+{"ts": "2026-03-29T14:23:00Z", "event": "session ended", "actor": "system"}
+```
 
 **Event → Action mapping (Manager decides what to do next, all async):**
 
@@ -323,9 +374,10 @@ Memory entries are append-only. Same bug recurs → new entry with `attempt: N+1
 
 ```bash
 cat worktree/.loop-status.json   # every agent's current state + 1-sentence summary
-cat worktree/.loop.log           # event history
+cat worktree/.loop.log           # event history (append-only, survives session restart)
 cat worktree/.backlog.json       # bug backlog
 cat worktree/.deploy-state.json  # last SHA + health
+cat worktree/.cycle-wip          # interrupted cycle state (if any)
 gh pr list                      # all open PRs
 cat worktree/.approved/<item_id> # QA approval
 cat worktree/.rejected/<item_id> # QA rejection

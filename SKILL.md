@@ -111,7 +111,7 @@ Before spawning any worker, the Manager MUST verify the relevant skill is queued
 | `/review` | Dev + QA | Before every PR |
 | `/qa` | QA | Functional tests |
 | `/browse` | DevOps | Smoke test |
-| `/ship` | DevOps | Land and deploy |
+| `/ship` | DevOps | Auto-merge PR, deploy to production |
 | `/design-review` | Designer | UI spec review |
 | `/retro` | Manager | After every sprint |
 | `/ce:plan` | Manager | Start of every sprint |

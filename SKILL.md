@@ -103,7 +103,7 @@ Communication is via `SendMessage`. Files are only for state persistence and hum
 ```
 worktree/.backlog.json          — bug backlog
 worktree/.feature-backlog.json   — feature backlog (PM owns)
-worktree/.loop-status.json      — live view of every agent (human readable)
+worktree/.loop-status.json      — live view of every agent: each agent has a 1-sentence current-status field visible to human at all times
 worktree/.loop.log              — append-only event log (human readable)
 worktree/.loop-mode             — current mode (rapid/quality/auto)
 worktree/.deploy-state.json     — last SHA, health, regressions
@@ -144,7 +144,7 @@ DevOps:
 Manager: after every cycle → /retro — analyze what worked/what didn't, update memory
 Manager: after every cycle → /ce:compound — build searchable knowledge base (context, solution, prevention)
 Manager: after every 10 cycles → /simplify — full codebase quality sweep
-Manager updates .loop-status.json at every step (human visibility)
+Manager updates .loop-status.json at every step — each agent's 1-sentence current status always visible to human
 ```
 
 ### Skill → Phase Reference
@@ -274,11 +274,22 @@ Memory entries are append-only. Same bug recurs → new entry with `attempt: N+1
 ## Visual Verification
 
 ```bash
-cat worktree/.loop-status.json   # every agent's current state
+cat worktree/.loop-status.json   # every agent's current state + 1-sentence summary
 cat worktree/.loop.log           # event history
 cat worktree/.backlog.json       # bug backlog
 cat worktree/.deploy-state.json  # last SHA + health
 gh pr list                      # all open PRs
+```
+
+**`.loop-status.json` live status schema** — each agent writes a 1-sentence current status:
+```json
+{
+  "manager": { "status": "spawning Dev1, Dev3 to fix isom tests", "step": "assigning" },
+  "dev_1":  { "status": "investigating isom::test_grid_to_screen — reading source", "step": "investigate" },
+  "dev_3":  { "status": "writing regression test for grid panic", "step": "regression-test" },
+  "qa":     { "status": "idle", "step": "waiting" },
+  "devops": { "status": "idle", "step": "waiting" }
+}
 ```
 
 ## VoxParty-Specific Paths

@@ -33,28 +33,35 @@ Manager boots, reads state files, resumes the Project Loop. Stays alive for the 
 
 ## What the Manager Does
 
-The Manager is a **persistent background agent**. It wakes on SendMessage from workers.
+The Manager is a **persistent background agent**. It does NOT do work itself — only spawns workers and resolves conflicts.
 
 ```
 LOOP FOREVER:
 1. ALWAYS spawn subagents in parallel — never one at a time
-2. Read state files (.backlog, .loop-log, .approved/, .rejected/, gh pr list)
-3. For every ready event: spawn DevOps or QA immediately, in parallel
-4. Dev finishes → PR opened → Manager sees it → DevOps builds → QA tests → DevOps deploys
-5. If smoke fails → rollback + re-assign immediately
-6. If session ends → next Manager reads loop.log + cycle-wip, resumes where it left off
-7. If all idle → run tests to find new failures
+2. Workers validate and report to Manager (not to each other)
+3. Manager reads state files, decides what to do next
+4. If workers disagree — Manager resolves the conflict
+5. If session ends → next Manager reads loop.log + cycle-wip, resumes where it left off
 ```
 
-**Key rule: ALWAYS use subagents and spawn them in parallel.** The Manager does not do work itself — it spawns workers. When assigning multiple devs, spawn ALL at once. When events are ready, spawn ALL at once. Never wait for one to finish before spawning the next.
+**Workers validate and report to Manager. Manager handles conflicts.**
+
+**Conflict examples:**
+- Dev says fix works, QA says it broke something else → Manager decides who is right and what to do
+- DevOps says build passes, smoke test says binary panics → Manager picks the smoke test result, re-assigns
+- Two devs assign to same item → Manager resolves, one keeps it
+
+**Key rule: ALWAYS use subagents in parallel.** Manager never does work itself — only spawns workers.
 
 ## What Workers Do
 
-**Dev**: investigate → write fix → /simplify → /review → open PR → Manager
+Workers validate and report to Manager. Manager never asks a worker to report to another worker.
 
-**QA**: /review → /qa → /ce:review (complex PRs) → Manager
+**Dev**: investigate → write fix → /simplify → /review → open PR → **report to Manager**
 
-**DevOps**: build → smoke test → /browse → /canary → Manager
+**QA**: /review → /qa → /ce:review → **report approved/rejected to Manager**
+
+**DevOps**: build → smoke test → /browse → /canary → **report pass/fail to Manager**
 
 ## Skills
 
@@ -92,9 +99,10 @@ All run automatically. No skipping.
 3. Write loop.log + cycle-wip before session ends
 4. Write CE compound docs after every cycle
 
-**Session Loop** (one Manager — ALWAYS use subagents in parallel):
+**Session Loop** (Manager — ALWAYS use subagents in parallel):
 5. Manager never does work itself — always spawn subagents
-6. Spawn ALL subagents in parallel — never wait for one to finish
+6. Workers validate and report to Manager only — Manager handles conflicts
+7. Spawn ALL subagents in parallel — never wait for one to finish
 
 ## Setup (per project)
 

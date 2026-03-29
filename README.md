@@ -21,7 +21,7 @@ All run automatically.
 
 **Project Loop:** Never merge without smoke test · Never leave repo broken · Write loop.log + cycle-wip · Write CE docs
 
-**Session Loop:** ALWAYS use subagents in parallel — Manager never does work itself · Reconcile on startup
+**Session Loop:** Manager never does work itself — workers validate and report to Manager · Manager handles conflicts · Spawn ALL in parallel
 
 ## Session Resume
 

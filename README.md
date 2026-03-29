@@ -4,7 +4,7 @@ Autonomous AI-driven DevOps team skill for Claude Code. Models a real software t
 
 Framework-agnostic. Configure test command, build command, and smoke test per project.
 
-Designed to run for hours with self-correcting rollback, checkpointing, and risk mitigation — minimal human intervention needed. Project-agnostic — configure test/build commands per project.
+Designed to achieve the **forever auto loop** — running indefinitely with self-healing, self-improving, zero human intervention. The 10 Manager's Laws make this possible. Project-agnostic — configure test/build commands per project.
 
 **Dual-skill architecture:** gstack (decision + browser QA) + CE (planning + deep review + compound knowledge). Framework-agnostic.
 

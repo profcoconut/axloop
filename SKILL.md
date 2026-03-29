@@ -1,10 +1,10 @@
 ---
 name: axloop
 preamble-tier: 2
-version: 1.2.0
+version: 1.3.0
 description: |
   Autonomous AI-driven DevOps team that runs like a real company.
-  A manager coordinates: 4 developers (parallel PRs), a designer (specs),
+  A manager coordinates: N developers (unlimited parallel PRs), a designer (specs),
   QA (regression + design verification), and DevOps (build gate + deploy + smoke test).
   Event-driven, no cron. Uses gstack + CE skills automatically throughout the workflow.
   gstack handles decision-making (CEO/eng review) and real browser QA.
@@ -28,7 +28,7 @@ allowed-tools:
 
 This skill acts as the **Manager** of an autonomous DevOps team. It coordinates:
 
-- **4 Developers** — parallel PRs, TDD, never push to main directly
+- **N Developers** — unlimited parallel PRs, TDD, never push to main directly
 - **1 Designer** — UI/UX specs before implementation
 - **1 QA** — regression tests + design verification gate
 - **1 DevOps** — build gate, deploy pipeline, smoke tests, rollback
@@ -118,8 +118,8 @@ worktree/.rejected/<item_id>    — QA/DevOps rejection reason
 ```
 PM SendMessage → Manager: "here is the prioritized feature backlog"
 Manager SendMessage → Designer: "here is your feature item, produce a spec"
-Manager SendMessage → Dev1, Dev2, Dev3, Dev4: "here is your item, start"
-Dev1-4 (parallel):
+Manager SendMessage → Dev1, Dev2, ... DevN: "here is your item, start"
+Dev1-N (parallel):
   1. /investigate <failing-test> — root cause investigation
   2. Write fix to source file
   3. /simplify — review the fix for quality/efficiency before PR
@@ -237,9 +237,9 @@ Manager spawns each sub-agent via `Agent` tool with `run_in_background: true`. E
 
 | Mode | Developers | Designer | QA | Deploy | Skill Usage |
 |------|-----------|---------|-----|--------|-------------|
-| rapid | 4 parallel | optional | specific test only | always | skip /canary, /simplify optional; `/ce:compound` after cycle |
+| rapid | N parallel | optional | specific test only | always | skip /canary, /simplify optional; `/ce:compound` after cycle |
 | quality | 1 at a time | required | full regression suite | always after QA | all gstack skills + CE deep review mandatory |
-| auto | 4 parallel | optional | quality if regressions exist | always | /canary + /simplify every 10 cycles; `/ce:compound` after cycle |
+| auto | N parallel | optional | quality if regressions exist | always | /canary + /simplify every 10 cycles; `/ce:compound` after cycle |
 
 ## Memory Persistence & Knowledge Accumulation
 

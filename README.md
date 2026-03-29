@@ -26,13 +26,13 @@ Built for long-running autonomous improvement cycles on VoxParty, but framework-
 ```
 PRODUCT MANAGER → MANAGER → Designer, DevOps, QA
                           ↓
-                    Dev1, Dev2, Dev3, Dev4  (4 parallel)
+                    Dev1, Dev2, ... DevN  (unlimited parallel)
 ```
 
 - **PM**: owns what to build, prioritizes backlog
 - **Designer**: produces UI/UX specs before implementation
 - **Manager**: decides how, assigns work, coordinates all agents
-- **Dev1-4**: parallel developers, PR-based workflow, TDD
+- **Dev1-N**: unlimited parallel developers, PR-based workflow, TDD
 - **QA**: regression tests + design verification gate
 - **DevOps**: build gate, deploy pipeline, smoke tests, rollback
 
@@ -74,9 +74,9 @@ gh pr list                       # all open PRs
 
 | Mode | Developers | Designer | QA | Worker Timeout |
 |------|-----------|---------|-----|----------------|
-| rapid | 4 parallel | optional | specific test only | 120s |
+| rapid | N parallel | optional | specific test only | 120s |
 | quality | 1 at a time | required | full regression suite | 60s |
-| auto | 4 parallel | optional | quality when regressions exist | 60s |
+| auto | N parallel | optional | quality when regressions exist | 60s |
 
 ## Requirements
 

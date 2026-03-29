@@ -37,13 +37,16 @@ The Manager is a **persistent background agent**. It wakes on SendMessage from w
 
 ```
 LOOP FOREVER:
-1. Read state files (.backlog, .loop-log, .approved/, .rejected/, gh pr list)
-2. For every ready event: spawn DevOps or QA immediately, in parallel
-3. Dev finishes → PR opened → Manager sees it → DevOps builds → QA tests → DevOps deploys
-4. If smoke fails → rollback + re-assign immediately
-5. If session ends → next Manager reads loop.log + cycle-wip, resumes where it left off
-6. If all idle → run tests to find new failures
+1. ALWAYS spawn subagents in parallel — never one at a time
+2. Read state files (.backlog, .loop-log, .approved/, .rejected/, gh pr list)
+3. For every ready event: spawn DevOps or QA immediately, in parallel
+4. Dev finishes → PR opened → Manager sees it → DevOps builds → QA tests → DevOps deploys
+5. If smoke fails → rollback + re-assign immediately
+6. If session ends → next Manager reads loop.log + cycle-wip, resumes where it left off
+7. If all idle → run tests to find new failures
 ```
+
+**Key rule: ALWAYS use subagents and spawn them in parallel.** The Manager does not do work itself — it spawns workers. When assigning multiple devs, spawn ALL at once. When events are ready, spawn ALL at once. Never wait for one to finish before spawning the next.
 
 ## What Workers Do
 
@@ -89,9 +92,9 @@ All run automatically. No skipping.
 3. Write loop.log + cycle-wip before session ends
 4. Write CE compound docs after every cycle
 
-**Session Loop** (one Manager efficient):
-5. Spawn all in parallel
-6. Reconcile on startup
+**Session Loop** (one Manager — ALWAYS use subagents in parallel):
+5. Manager never does work itself — always spawn subagents
+6. Spawn ALL subagents in parallel — never wait for one to finish
 
 ## Setup (per project)
 

@@ -13,21 +13,17 @@ Two loops work together:
 /axloop <path-to-doc> [rapid|quality|auto]
 ```
 
-## 10 Laws
+## Laws
 
 **Project Loop** (survive sessions):
-1. Never push to main/feat directly — all PR
-2. Never merge without smoke test
-3. Never leave repo broken
-4. Never skip rollback on smoke failure
-5. Never write to main/feat branch
-6. Always write loop.log
-7. Always write cycle-wip before session ends
+1. Never merge without smoke test
+2. Never leave repo broken
+3. Always write loop.log + cycle-wip
+4. Always write CE compound docs
 
 **Session Loop** (per session):
-8. Always assign when devs idle and backlog has items
-9. Always spawn in parallel
-10. Always reconcile on startup
+5. Always spawn in parallel
+6. Always reconcile on startup
 
 ## Skills (automatic)
 

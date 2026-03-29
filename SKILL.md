@@ -31,23 +31,19 @@ One Manager agent per session. Wakes on SendMessage. Processes events. Spawns ag
 
 The Project Loop never stops. Sessions start and end. The Manager (Session Loop) is how the Project Loop executes.
 
-## 10 Laws — The Constitution
+## Laws
 
-These make both loops work. Violating any breaks the loop.
+**Project Loop laws — make it survive sessions and compound forever:**
 
-**Project Loop laws (survive sessions):**
-1. **Never push to main/feat directly.** All code through PR. Always.
-2. **Never merge without smoke test passing.** Deploy only after DevOps confirms.
-3. **Never leave the repo broken.** Fix must pass tests before commit.
-4. **Never skip rollback on smoke failure.** Rollback immediately.
-5. **Never write to main/feat branch.** Feature branches only.
-6. **Always write loop.log.** Every state change appended. Project Loop history.
-7. **Always write cycle-wip before session ends.** Next Manager resumes, not restarts.
+1. **Never merge without smoke test.** Broken code never reaches main.
+2. **Never leave repo broken.** Tests pass before commit.
+3. **Always write loop.log + cycle-wip.** Next session resumes, not restarts.
+4. **Always write CE compound docs.** Knowledge accumulates across sessions.
 
-**Session Loop laws (per session):**
-8. **Always assign when devs are idle and backlog has items.** Never idle workers.
-9. **Always spawn in parallel.** If events are ready, spawn all at once.
-10. **Always reconcile on startup.** Read all state files before acting.
+**Session Loop laws — make one Manager efficient:**
+
+5. **Always spawn in parallel.** Never wait for one to finish.
+6. **Always reconcile on startup.** Read all state files before acting.
 
 ## Invocation
 

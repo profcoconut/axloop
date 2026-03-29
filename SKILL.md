@@ -9,11 +9,10 @@ description: |
   Event-driven, no cron, no polling. Uses gstack + CE skills automatically throughout.
   gstack handles decision-making (CEO/eng review) and real browser QA.
   CE handles planning, deep review, and compound knowledge accumulation.
-  Takes a doc input (feature spec, brainstorm, plan).
-  Built on TDD philosophy. Designed to run autonomously for hours,
-  self-correcting via rollback and checkpointing. Project-agnostic — configure per project.
-  Use when you want to start a long-running autonomous improvement cycle
-  or when you say "run the loop" or "TDD loop".
+  Built on TDD philosophy. Designed to achieve the forever auto loop — running indefinitely
+  with self-healing, self-improving, zero human intervention. The 10 Manager's Laws are
+  the constitution that makes this possible.
+  Use when you want to start the loop or when you say "run the loop" or "TDD loop".
 allowed-tools:
   - Bash
   - Read
@@ -50,7 +49,9 @@ This skill acts as the **Manager** of an autonomous DevOps team. It coordinates:
 
 ## Manager's 10 Laws — The Constitution
 
-**These are non-negotiable. Violating any of these breaks the loop's self-healing properties.**
+**These are the laws the Manager follows to achieve and maintain the forever auto loop. Violating any of these breaks the self-healing loop.**
+
+**The goal:** A loop that runs forever without human intervention. The 10 laws make this possible by ensuring every failure mode has an automatic recovery path.
 
 1. **Never push to main/feat directly.** All code goes through PR. Always.
 2. **Never merge without smoke test passing.** Deploy only after DevOps confirms smoke pass.
@@ -62,6 +63,35 @@ This skill acts as the **Manager** of an autonomous DevOps team. It coordinates:
 8. **Always assign when devs are idle and backlog has items.** Never let workers idle while work exists.
 9. **Always spawn in parallel, never sequentially.** If multiple events are ready, spawn all at once. Never wait for one to finish before spawning the next.
 10. **Always reconcile on startup.** New session reads all state files before acting. Never assume the repo is clean or empty.
+
+**Why these 10 laws enable the forever loop:**
+- Laws 1-5: No code reaches main without being tested and reviewed → no broken deployments
+- Laws 6-7: Session death doesn't lose work → loop survives interruptions
+- Laws 8-9: Workers are always busy → maximum throughput
+- Law 10: Loop picks up exactly where it left off → seamless continuity across sessions
+
+## The Forever Auto Loop
+
+The goal is a loop that runs **forever** without human intervention. Not hours — forever.
+
+**What "forever" means:**
+- Loop survives session deaths (files persist all state)
+- Loop survives crashes (cycle-wip + reconciliation recovers)
+- Loop self-heals (rollback on smoke fail, reassign on dev death)
+- Loop compounds knowledge (CE builds searchable docs/solutions/ over time)
+- Loop never goes idle (devs always working or being assigned)
+- Loop never needs to be told what to do next (Manager watches and reacts)
+
+**The compound effect:**
+- Each cycle fixes something AND learns something (via /ce:compound)
+- Each session builds on all previous sessions' knowledge
+- The longer it runs, the fewer重复 mistakes (learnings-researcher finds past solutions)
+- Bugs that took hours to debug in week 1 take minutes in week 4 because the knowledge is already there
+
+**When does it stop?**
+- Only when human writes `stop` to `worktree/.loop-mode`
+- Or when the backlog is empty, all devs are idle, and `cargo test` passes green
+- Or when the session is killed externally
 
 ## Gstack Skills as Execution Layer
 

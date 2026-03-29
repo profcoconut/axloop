@@ -2,9 +2,10 @@
 
 Autonomous AI-driven DevOps team. Manager coordinates developers, designer, QA, DevOps — all via SendMessage. Event-driven, no cron, no polling.
 
-**The Manager is a persistent background agent.** It stays alive across the session, reacts to events, never waits for one step to finish before spawning the next.
+Two loops work together:
 
-**gstack + CE skills run automatically throughout.** The 10 Laws are the constitution that makes the forever auto loop possible.
+- **Project Loop** — Fix all failures. Improve forever. Zero regressions. Survives sessions.
+- **Session Loop** — Process all ready events. Spawn all parallel work. Never idle. One Manager per session.
 
 ## Usage
 
@@ -12,26 +13,9 @@ Autonomous AI-driven DevOps team. Manager coordinates developers, designer, QA, 
 /axloop <path-to-doc> [rapid|quality|auto]
 ```
 
-## Team
-
-```
-PRODUCT MANAGER → MANAGER → Designer, DevOps, QA
-                          ↓
-                    Dev1, Dev2, ... DevN  (parallel)
-```
-
-- **Manager**: persistent background agent, watches state, reacts to events, spawns all roles
-- **Developers**: parallel, TDD, PR workflow
-- **QA**: regression + design verification gate
-- **DevOps**: build gate, deploy, smoke test, rollback
-- **Designer**: UI/UX specs before implementation
-
-## The Forever Auto Loop
-
-Runs forever without human intervention. Survives session deaths. Self-heals on failure. Compounds knowledge over time. Never goes idle.
-
 ## 10 Laws
 
+**Project Loop** (survive sessions):
 1. Never push to main/feat directly — all PR
 2. Never merge without smoke test
 3. Never leave repo broken
@@ -39,28 +23,31 @@ Runs forever without human intervention. Survives session deaths. Self-heals on 
 5. Never write to main/feat branch
 6. Always write loop.log
 7. Always write cycle-wip before session ends
+
+**Session Loop** (per session):
 8. Always assign when devs idle and backlog has items
 9. Always spawn in parallel
 10. Always reconcile on startup
 
 ## Skills (automatic)
 
-| Skill | Role |
-|-------|------|
-| `/investigate` | Dev: root cause |
-| `/simplify` | Dev + DevOps: quality |
-| `/review` | Dev + QA: pre-PR review |
-| `/qa` | QA: functional test |
-| `/browse` | DevOps: smoke test |
-| `/canary` | DevOps: post-deploy monitor |
-| `/retro` | Manager: cycle retrospective |
-| `/ce:plan` | Manager: deep planning |
-| `/ce:review` | Manager + QA: 6-15 parallel reviewers |
-| `/ce:compound` | Manager: build knowledge base |
+| Skill | Who | What |
+|-------|-----|------|
+| `/investigate` | Dev | Root cause |
+| `/simplify` | Dev + DevOps | Quality |
+| `/review` | Dev + QA | Pre-PR review |
+| `/qa` | QA | Functional test |
+| `/browse` | DevOps | Smoke test |
+| `/canary` | DevOps | Post-deploy monitor |
+| `/design-review` | Designer | UI/UX spec |
+| `/retro` | Manager | Cycle retro |
+| `/ce:plan` | Manager | Deep planning |
+| `/ce:review` | Manager + QA | 6-15 parallel reviewers |
+| `/ce:compound` | Manager | Build knowledge base |
 
 ## Session Resume
 
-All state in `worktree/` files. New session reads loop.log, backlog, cycle-wip, deploy-state, open PRs — resumes from where left off. No work lost.
+All Project Loop state in `worktree/` files. New Manager reads `.loop.log`, `.backlog.json`, `.cycle-wip`, open PRs — resumes from where left off. No work lost.
 
 ## Modes
 
@@ -74,7 +61,7 @@ All state in `worktree/` files. New session reads loop.log, backlog, cycle-wip, 
 
 - Claude Code session
 - Git repository + `gh` CLI
-- Test + build commands configured in SKILL.md
+- Test + build commands in SKILL.md
 
 ## Location
 

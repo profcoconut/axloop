@@ -50,7 +50,7 @@ Manager boots, reads state files, resumes the Project Loop. Stays alive for the 
 
 ## What the Manager Does
 
-The Manager is a **persistent background agent**. It does NOT do work itself — only spawns workers, enforces skills, and resolves conflicts.
+The Manager is a **persistent background agent**. It does NOT do work itself — only recruits workers, enforces skills, and resolves conflicts. The Manager recruits whatever roles are needed for each sprint — Dev, QA, DevOps, Designer, or others as required.
 
 ```
 PROJECT LOOP (forever):
@@ -60,9 +60,10 @@ PROJECT LOOP (forever):
     3. Spawn ALL workers in parallel via Agent
     4. Workers report results to Manager only
     5. Manager resolves conflicts
-    6. Run /retro + /ce:compound
-    7. Write sprint summary to worktree/.sprint-log.json
-    8. GOTO 1 — plan next sprint immediately, no pause, no idle
+    6. Run /ship to land and deploy
+    7. Run /retro + /ce:compound
+    8. Write sprint summary to worktree/.sprint-log.json
+    9. GOTO 1 — plan next sprint immediately, no pause, no idle
 
 SESSION BOUNDARY:
   Before session ends → write loop.log + cycle-wip + sprint-state
@@ -91,7 +92,9 @@ Workers do implementation work and report results to Manager only. Workers never
 
 **QA**: `/review` → `/qa` → `/ce:review` → **report approved/rejected to Manager**
 
-**DevOps**: build → smoke test → `/browse` → `/canary` → **report pass/fail to Manager**
+**Designer**: `/design-review` → **report approved/rejected to Manager**
+
+**DevOps**: build → smoke test → `/browse` → `/ship` → **report pass/fail to Manager**
 
 ---
 
@@ -108,7 +111,7 @@ Before spawning any worker, the Manager MUST verify the relevant skill is queued
 | `/review` | Dev + QA | Before every PR |
 | `/qa` | QA | Functional tests |
 | `/browse` | DevOps | Smoke test |
-| `/canary` | DevOps | Post-deploy monitoring |
+| `/ship` | DevOps | Land and deploy |
 | `/design-review` | Designer | UI spec review |
 | `/retro` | Manager | After every sprint |
 | `/ce:plan` | Manager | Start of every sprint |
@@ -189,23 +192,6 @@ Workers have full tool access: `Bash`, `Read`, `Write`, `Edit`, `Grep`, `Glob`, 
 
 ---
 
-## External Watchdog (Session Resurrection)
-
-Claude Code has a hard session limit (~15–30 min of active work). The watchdog restarts it automatically.
-
-```bash
-#!/bin/bash
-# watchdog.sh — keeps the loop running across session limits
-while true; do
-  claude -p "run the loop" --skill axloop
-  echo "Session ended at $(date), restarting in 5s..."
-  sleep 5
-done
-```
-
-On restart, the new Manager reads `.cycle-wip`, `.sprint-state.json`, and `.loop.log` to resume exactly where the previous session stopped.
-
----
 
 ## Setup (per project)
 

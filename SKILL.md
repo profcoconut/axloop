@@ -1,14 +1,11 @@
 ---
 name: axloop
 preamble-tier: 2
-version: 1.8.0
 description: |
-  Autonomous AI-driven DevOps team. Manager coordinates developers, designer, QA, and DevOps
-  via SendMessage. Event-driven, no cron, no polling.
-  Two loops work together: the Project Loop (forever, survives sessions) and the Session Loop
-  (one Manager agent per session, reacts to events).
-  The 10 Laws are the constitution that makes both loops work.
-  Use when you say "run the loop" or "TDD loop".
+  Autonomous DevOps team in Claude Code. Manager coordinates developers, QA, and DevOps
+  via SendMessage. Event-driven, no cron.
+  Two loops: Project Loop (forever) + Session Loop (one Manager per session).
+  Skills run automatically. Use when you say "run the loop" or "TDD loop".
 allowed-tools:
   - Bash
   - Read
@@ -21,214 +18,88 @@ allowed-tools:
   - Skill
 ---
 
-## The Two Loops
+## Two Loops
 
-**Project Loop — goal: Fix all failures. Improve forever. Zero regressions.**
-The long-running loop that spans multiple sessions. Survives session deaths. Compounds knowledge. Self-heals. Runs on the project codebase.
+**Project Loop — runs forever, spans sessions**
 
-**Session Loop — goal: Process all ready events. Spawn all parallel work. Never idle.**
-One Manager agent per session. Wakes on SendMessage. Processes events. Spawns agents. Dies when session ends. Next session's Manager resumes the Project Loop.
+Fix all failures. Improve forever. Zero regressions.
+Survives session deaths. State lives in worktree/ files. CE compound docs accumulate knowledge.
 
-The Project Loop never stops. Sessions start and end. The Manager (Session Loop) is how the Project Loop executes.
+**Session Loop — one Manager per session**
+
+React to all ready events. Spawn all work in parallel. Never idle.
+Manager wakes on SendMessage. Dies when session ends. Next Manager resumes the Project Loop.
+
+## How It Works
+
+1. Start: `/axloop <doc>` — Manager boots, reads state files, resumes Project Loop
+2. Manager watches for events: PR opened, build passed, QA approved, smoke failed, etc.
+3. On event: spawn DevOps or QA immediately, in parallel
+4. Dev writes fix → opens PR → Manager sees it → DevOps builds → QA tests → DevOps deploys → smoke test
+5. If smoke fails: rollback + re-assign immediately
+6. If session dies: next Manager reads loop.log + cycle-wip, resumes from where it left off
+7. If all idle: run tests to find new failures
+
+## Skills (automatic)
+
+| Skill | When |
+|-------|------|
+| `/investigate` | Dev investigating a failing test |
+| `/simplify` | Dev + DevOps on code quality |
+| `/review` | Dev + QA before PR |
+| `/qa` | QA running functional tests |
+| `/browse` | DevOps doing smoke test |
+| `/canary` | DevOps post-deploy monitoring |
+| `/design-review` | Designer reviewing UI specs |
+| `/retro` | Manager after every cycle |
+| `/ce:plan` | Manager starting a new feature |
+| `/ce:review` | Manager or QA on complex PRs (6-15 parallel reviewers) |
+| `/ce:compound` | Manager after every cycle — writes to docs/solutions/ |
+
+## State Files (all in worktree/)
+
+- `.backlog.json` — bug backlog
+- `.loop-status.json` — live 1-sentence status per agent
+- `.loop.log` — event history (survives session death)
+- `.cycle-wip` — interrupted work (resume, don't restart)
+- `.deploy-state.json` — last SHA + health
+- `.approved/<item>` / `.rejected/<item>` — QA decisions
+- `.proposals/<dev>/<item>.json` — dev fix proposals (PR opened)
+- `.crash-report/<item>.json` — crash/panic output
+- `.rollback/<item>` — rollback reason
 
 ## Laws
 
-**Project Loop laws — make it survive sessions and compound forever:**
+**Project Loop:**
+1. Never merge without smoke test passing
+2. Never leave repo broken
+3. Write loop.log + cycle-wip before session ends
+4. Write CE compound docs to docs/solutions/ after every cycle
 
-1. **Never merge without smoke test.** Broken code never reaches main.
-2. **Never leave repo broken.** Tests pass before commit.
-3. **Always write loop.log + cycle-wip.** Next session resumes, not restarts.
-4. **Always write CE compound docs.** Knowledge accumulates across sessions.
-
-**Session Loop laws — make one Manager efficient:**
-
-5. **Always spawn in parallel.** Never wait for one to finish.
-6. **Always reconcile on startup.** Read all state files before acting.
-
-## Invocation
-
-```
-/axloop <path-to-doc> [rapid|quality|auto]
-```
-
-**First invocation:** starts the Manager (Session Loop) and resumes the Project Loop.
-
-- `path-to-doc`: Feature spec, brainstorm, or plan
-- `mode` (default: auto): `rapid` | `quality` | `auto`
-
-## Session Loop — How One Manager Works
-
-**One Manager per session.** Woken ONLY by SendMessage or state file writes. No cron, no polling, never exits after spawning.
-
-**Every wake-up — act in priority order:**
-1. Crash/panic → highest
-2. Smoke fail → rollback immediately
-3. QA rejection → re-assign
-4. QA approval → deploy immediately
-5. Build pass → QA immediately
-6. PR opened → DevOps build check
-7. Backlog has unassigned items → assign all devs at once
-8. All idle + backlog empty → run test command → find failures
-
-**Always spawn in parallel.** When assigning: spawn ALL devs at once. When events are ready: spawn all at once. Never wait.
-
-**Idle sweep:** Nothing active? Run test command, parse failures, write backlog, assign devs. Session Loop keeps the Project Loop alive.
-
-## Project Loop — The Forever Loop
-
-**Goal: Fix all failures. Improve forever. Zero regressions.**
-
-The Project Loop spans sessions. State files are its memory. CE compound docs are its knowledge base.
-
-**What makes it forever:**
-- State in files survives session deaths (`.backlog.json`, `.loop.log`, `.deploy-state.json`)
-- `cycle-wip` saves interrupted work — next Manager resumes
-- CE compound docs (`docs/solutions/`) accumulate project knowledge across sessions
-- No human needed to restart — next session's Manager picks up automatically
-
-**Stops when:** human writes `stop` to `worktree/.project-loop-state` — not `.loop-mode` (that's session-only)
-
-## Team & Skills
-
-**Roles:** Developers, Designer, QA, DevOps — all via SendMessage.
-
-**All skills the Manager uses (automatic):**
-
-| Skill | What it does | Who uses it |
-|-------|-------------|-------------|
-| `/investigate` | Root cause analysis | Developer |
-| `/simplify` | Code quality + efficiency | Developer, DevOps |
-| `/review` | Pre-PR review | Developer, QA |
-| `/qa` | Functional test | QA |
-| `/browse` | Smoke test — verify app loads | DevOps |
-| `/canary` | Post-deploy monitoring | DevOps |
-| `/design-review` | UI/UX spec review | Designer |
-| `/retro` | Cycle retrospective | Manager |
-| `/ce:plan` | Deep planning — research agents + historical learnings | Manager |
-| `/ce:review` | 6-15 specialized parallel reviewers | Manager, QA |
-| `/ce:compound` | Build searchable knowledge base from session | Manager |
-
-**Dev pipeline:** Investigate → write fix → /simplify → /review → gh pr create → Manager
-
-**QA pipeline:** /review → /qa → /ce:review (complex PRs) → Manager
-
-**DevOps pipeline:** Build → binary smoke test (verify starts) → /browse → /canary → Manager
-
-**Designer pipeline:** Write spec → /design-review → Manager
-
-## Shared Infrastructure
-
-State files are the Project Loop's memory. All auto-created in `worktree/`.
-
-```
-.backlog.json              — bug backlog (crash, panic, assertion, compilation, flaky)
-.feature-backlog.json      — feature backlog
-.project-loop-state        — Project Loop state: running | paused | stopped
-.loop-status.json          — live 1-sentence status per agent
-.loop.log                  — append-only event log (survives session death)
-.cycle-wip                — interrupted cycle state (resumed, not restarted)
-.loop-mode                — current session mode (rapid/quality/auto)
-.deploy-state.json         — last SHA, health, regressions
-.proposals/<dev_id>/<item_id>.json — fix proposal
-.designs/<feature_id>.md  — designer specs
-.approved/<item_id>       — QA/DevOps approval
-.rejected/<item_id>       — QA/DevOps rejection
-.crash-report/<item_id>.json — crash/panic output + backtrace
-.rollback/<item_id>      — rollback reason + from_sha
-```
-
-## Event → Action
-
-```
-cargo test finds failures         → write backlog.json, assign to dev
-cargo test panics (severity: crash) → crash item, assign immediately
-PR opened (.proposals/*)          → DevOps build check
-Build passes                      → QA regression + design check
-QA approved                       → DevOps merge + deploy
-QA rejected                       → re-assign to dev
-Smoke fails (.rollback/* written) → git revert, re-assign immediately
-Smoke passes                      → /ce:compound, close backlog item
-All idle + backlog empty          → run test command, find failures
-10 cycles done                    → /ce:simplify quality sweep
-```
-
-**Priority:** Crash → Rollback → Rejection → Approval → Build → PR → Unassigned → Idle
+**Session Loop:**
+5. Spawn all work in parallel — never wait
+6. Reconcile all state files on startup
 
 ## Session Resume
 
-**No work lost when a session dies.** Project Loop state survives.
-
-**On every /axloop invocation (Session Loop starts):**
-```
-1. Read .loop.log          → history
-2. Read .loop-status.json   → what each agent was doing
-3. Read .backlog.json       → items + statuses
-4. Read .deploy-state.json  → last good SHA
-5. Read .cycle-wip          → interrupted cycle?
-6. Read .approved/ + .rejected/
-7. Check gh pr list          → open PRs
-8. Reconcile: continue each open PR from correct stage
-9. Dead devs (no recent status) → reassign
-10. WIP cycles → resume, don't restart
-11. Resume Project Loop from where it left off
-```
+Session died? No problem. New Manager reads loop.log, backlog, cycle-wip, open PRs — picks up where it left off.
 
 ## Modes
 
-| Mode | Developers | Designer | QA | Deploy | Skills |
-|------|-----------|---------|-----|--------|--------|
-| rapid | parallel | optional | specific test | always | skip /canary |
-| quality | 1 at a time | required | full suite | always after QA | all mandatory |
-| auto | parallel | optional | quality if regressions | always | /canary every 10 cycles |
+`rapid` — parallel devs, skip /canary
+`quality` — one dev at a time, all skills mandatory
+`auto` — parallel devs, /canary every 10 cycles
 
-## Memory & Knowledge
+## Project Setup
 
-**CE compound docs** (primary): `/ce:compound` writes to `docs/solutions/` after every cycle — context, solution, prevention. Future `/ce:plan` calls find these via learnings-researcher. **Project Loop knowledge — survives forever.**
+Configure in SKILL.md:
+- Test command: `cargo test`, `npm test`, etc.
+- Build command: `cargo build`, etc.
+- Binary start: `cargo run --`, etc.
+- Smoke test: run binary briefly, check no panic
+- Branch: `feat/engine`, `main`, etc.
+- Memory path: where CE docs go
 
-**gstack memory** (append-only): Write to `{memory-dir}/YYYYMMDD-HHMMSS-<slug>.md` after each fix. Same bug recurs → new entry with `attempt: N+1`.
+Crash = highest priority. Parse test output for `panicked at`, `panic:`, `Segmentation fault`.
 
-## Visual Verification
-
-```bash
-cat worktree/.project-loop-state  # running | paused | stopped
-cat worktree/.loop-status.json     # live 1-sentence per agent
-cat worktree/.loop.log           # event history
-cat worktree/.backlog.json       # current backlog
-gh pr list                      # open PRs
-```
-
-**`.loop-status.json`:**
-```json
-{
-  "project_loop": "running",
-  "manager": { "status": "spawning Dev1, Dev3 to fix tests", "step": "assigning" },
-  "dev_1":  { "status": "investigating test_grid_to_screen", "step": "investigate" },
-  "qa":     { "status": "idle", "step": "waiting" },
-  "devops": { "status": "idle", "step": "waiting" }
-}
-```
-
-**`.cycle-wip`:**
-```json
-{
-  "item_id": "item-042", "dev_id": "dev_1", "step": "regression-test",
-  "investigation_state": "off-by-one in grid index",
-  "fix_draft": "src/core/isom.rs line 234 — changed > to >=",
-  "interrupted_at": "2026-03-29T14:23:00Z"
-}
-```
-
-## Project Configuration
-
-Project-agnostic. Configure per-project:
-
-- **Worktree path**: Where the codebase lives
-- **Test command**: `cargo test`, `npm test`, `pytest`, etc.
-- **Build command**: `cargo build`, `npm run build`, etc.
-- **Binary start**: `cargo run --`, `npm start`, etc.
-- **Smoke test**: Brief binary run: `<start cmd> --headless 2>&1 | head -20`
-- **Branch**: Target for PRs (`feat/engine`, `main`, etc.)
-
-**Crash detection:** Parse test output for `panicked at`, `Segmentation fault`, `panic:`. Write as `severity: crash` — highest priority.
-
-**Skill dev note:** This skill develops itself. Loop operates on target project codebase. Skill files stay in `~/Documents/skills/Axloop/`.
+Stop loop: write `stop` to `worktree/.project-loop-state`

@@ -2,11 +2,10 @@
 
 Autonomous DevOps team in Claude Code. Manager coordinates developers, QA, DevOps via SendMessage.
 
-Two loops:
-- **Project Loop** — runs forever, fixes all failures, compounds knowledge, survives sessions
-- **Session Loop** — one Manager per session, reacts to events, spawns all work in parallel
+**Project Loop** — runs forever, survives sessions
+**Session Loop** — one Manager per session, spawns all work in parallel
 
-## Usage
+## Start
 
 ```
 /axloop <doc> [rapid|quality|auto]
@@ -26,7 +25,7 @@ All run automatically.
 
 ## Session Resume
 
-All state in worktree/. New Manager reads loop.log + backlog + cycle-wip + open PRs. Picks up where it left off.
+New Manager reads worktree/ state files, resumes where it left off.
 
 ## Location
 

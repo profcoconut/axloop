@@ -4,6 +4,8 @@ Autonomous AI-driven DevOps team skill for Claude Code. Models a real software t
 
 Built for long-running autonomous improvement cycles on VoxParty, but framework-agnostic.
 
+Designed to run for hours with self-correcting rollback, checkpointing, and risk mitigation — minimal human intervention needed.
+
 **Dual-skill architecture:** gstack (decision + browser QA) + CE (planning + deep review + compound knowledge)
 
 ## Usage

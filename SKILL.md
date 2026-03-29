@@ -10,7 +10,8 @@ description: |
   gstack handles decision-making (CEO/eng review) and real browser QA.
   CE handles planning, deep review, and compound knowledge accumulation.
   Takes a doc input (feature spec, brainstorm, plan).
-  Built on VoxParty's TDD philosophy. Use when you want to start a long-running
+  Built on VoxParty's TDD philosophy. Designed to run autonomously for hours,
+  self-correcting via rollback and checkpointing. Use when you want to start a long-running
   autonomous improvement cycle or when you say "run the loop" or "TDD loop".
 allowed-tools:
   - Bash
@@ -213,7 +214,7 @@ Manager updates .loop-status.json at every step — each agent's 1-sentence curr
 
 **Allowed tools:** Bash, Read, Write, Edit, Grep, Glob, Agent, WebSearch, Skill
 
-- Bash: git operations, cargo commands, gh CLI, file checks
+- Bash: git operations, cargo commands, gh CLI, file checks, branch creation for backups
 - Read: all source files, all state files, all proposals
 - Write: .backlog.json, .loop-status.json, .deploy-state.json, memory entries
 - Edit: source files only — never modifies tests
@@ -293,7 +294,35 @@ gh pr list                      # all open PRs
 }
 ```
 
-## VoxParty-Specific Paths
+## Resilience & Safe Loop Operations
+
+The loop is designed to run for hours without human intervention. Risk mitigation is built in:
+
+**Backup before risky steps:**
+- Before git operations that modify shared state (merge, revert), create a backup branch: `feat/engine-backup-YYYYMMDD-HHMMSS`
+- Before major refactors, checkpoint current state to a backup branch
+- PRs are always worked on in feature branches — never touch `feat/engine` directly until merge-ready and reviewed
+
+**Never leave repo in broken state:**
+- Every fix must pass `cargo test` before commit
+- If a fix attempt fails mid-cycle (timeout, crash), stash work and revert any unverified changes
+- If a regression is detected post-merge, immediately `git revert` and re-assign to dev
+
+**Checkpointing in-progress work:**
+- Write WIP state to `.loop-status.json` at every step so interrupted work can resume
+- If cycle exceeds timeout budget, write `.cycle-wip` with investigation state — next cycle resumes from it
+
+**Human intervention is only needed when:**
+- A bug is blocked after 3 retry attempts
+- A design spec is ambiguous and needs clarification
+- The backlog is empty and needs prioritization input
+- Human explicitly stops the loop
+
+**Auto-mitigation hierarchy:**
+1. First attempt: fix from memory/learnings (fast)
+2. Second attempt: deeper investigation with `/investigate`
+3. Third attempt: escalate — write to backlog with `blocked` status, request human review
+4. Rollback at any smoke/regression failure — never wait for human to notice
 
 - **Engine**: `~/Documents/voxparty/.worktrees/engine/`
 - **Memory**: `~/Users/tengpeng/.claude/projects/-Users-tengpeng-Documents-voxparty/memory/`

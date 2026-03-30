@@ -43,6 +43,7 @@ Manager boots, reads `worktree/` state files, resumes the Sprint Loop. Stays ali
 Sprint Loop runs forever. Each completed sprint immediately triggers the next. There is no exit condition.
 
 ```
+0. Read worktree/.sprint-state.json + .cycle-wip + .loop.log to understand current status if not in memory
 1. Skill("compound-engineering:ce-plan") → generate sprint backlog (5–10 items)
 2. Write goal + items to worktree/.sprint-state.json
 3. Spawn ALL workers in parallel via Agent
@@ -51,7 +52,7 @@ Sprint Loop runs forever. Each completed sprint immediately triggers the next. T
 6. Skill("ship") → land and deploy
 7. Skill("retro") + Skill("compound-engineering:ce-compound")
 8. Write sprint summary to worktree/.sprint-log.json
-9. GOTO 1 — no pause, no idle
+9. GOTO 0 — no pause, no idle
 ```
 
 ---
@@ -86,7 +87,7 @@ Workers do implementation. Report to Manager only. Never coordinate with each ot
 
 | Role | Pipeline |
 |------|----------|
-| **Dev** | Skill("investigate") → write fix → `/simplify` → Skill("review") → open PR |
+| **Dev** | Skill("investigate") → write fix → Skill("simplify") → Skill("review") → open PR |
 | **QA** | Skill("review") → Skill("qa") → Skill("compound-engineering:ce-review") |
 | **Designer** | Skill("design-review") |
 | **DevOps** | build → smoke test → Skill("browse") → Skill("ship") |
@@ -97,7 +98,7 @@ Workers do implementation. Report to Manager only. Never coordinate with each ot
 
 All skills run automatically. Skipping a skill is a loop violation.
 
-**How to invoke:** All skills use `Skill("...")`. gstack skills: `Skill("investigate")`, `Skill("qa")`, etc. compound-engineering skills: `Skill("compound-engineering:ce-plan")` etc. `Skill("simplify")` maps to the built-in slash command.
+**How to invoke:** All skills use `Skill("...")`. gstack skills: `Skill("investigate")`, `Skill("qa")`, etc. compound-engineering skills: `Skill("compound-engineering:ce-plan")` etc.
 
 | Skill | Who | When |
 |-------|-----|------|

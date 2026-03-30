@@ -57,6 +57,31 @@ Sprint Loop runs forever. Each completed sprint immediately triggers the next. T
 
 ---
 
+## Laws
+
+### If / Then
+
+- IF sprint completes → immediately start next sprint (no stop condition exists)
+- IF backlog empty → trigger Skill("compound-engineering:ce-plan") for next sprint
+- IF Dev + QA conflict → Manager decides and re-assigns
+- IF smoke test fails → Manager rejects, DevOps reworks
+- IF two workers claim same item → Manager resolves, one keeps it
+
+### Always
+
+1. Never merge without a passing smoke test
+2. Never leave the repo broken
+3. Every sprint MUST complete all required skills before closing
+4. Manager NEVER does implementation work — only spawns workers
+5. Workers NEVER do each other's work — roles stay in their lane
+6. Workers report to Manager only
+7. Spawn ALL subagents in parallel — never one at a time
+8. Write CE compound docs after every sprint
+9. Manager: Read, Glob, Grep, Agent, Skill only. Cannot call Bash, Write, or Edit.
+10. Workers: Bash, Read, Write, Edit, Grep, Glob, WebSearch, Skill
+
+---
+
 ## Workers
 
 Workers do implementation. Report to Manager only. Never coordinate with each other.
@@ -116,52 +141,13 @@ All skills run automatically. Skipping a skill is a loop violation.
   "goal": "improve test coverage on auth module",
   "items": ["item-a", "item-b", "item-c"],
   "completed": ["item-a"],
-  "skills_required": ["Skill(\"compound-engineering:ce-plan\")", "Skill(\"gstack:investigate\")", "Skill(\"gstack:review\")", "Skill(\"gstack:retro\")", "Skill(\"compound-engineering:ce-compound\")"],
+  "skills_required": ["Skill(\"compound-engineering:ce-plan\")", "Skill(\"investigate\")", "Skill(\"review\")", "Skill(\"retro\")", "Skill(\"compound-engineering:ce-compound\")"],
   "skills_completed": ["Skill(\"compound-engineering:ce-plan\")"],
   "started_at": "2026-03-29T10:00:00Z"
 }
 ```
 
 Manager checks `skills_completed` before marking a sprint done.
-
----
-
-## Laws
-
-### If / Then
-
-- IF sprint completes → immediately start next sprint (no stop condition exists)
-- IF backlog empty → trigger Skill("compound-engineering:ce-plan") for next sprint
-- IF Dev + QA conflict → Manager decides and re-assigns
-- IF smoke test fails → Manager rejects, DevOps reworks
-- IF two workers claim same item → Manager resolves, one keeps it
-
-### Always
-
-1. Never merge without a passing smoke test
-2. Never leave the repo broken
-3. Every sprint MUST complete all required skills before closing
-4. Manager NEVER does implementation work — only spawns workers
-5. Workers NEVER do each other's work — roles stay in their lane
-6. Workers report to Manager only
-7. Spawn ALL subagents in parallel — never one at a time
-8. Write CE compound docs after every sprint
-9. Manager: Read, Glob, Grep, Agent, Skill only. Cannot call Bash, Write, or Edit.
-10. Workers: Bash, Read, Write, Edit, Grep, Glob, WebSearch, Skill
-
----
-
-## Setup
-
-Edit before running:
-
-- **Test command**: `cargo test` / `npm test` / etc.
-- **Build command**: `cargo build` / etc.
-- **Binary**: `cargo run --` / etc.
-- **Smoke test**: run binary briefly, check for no panic
-- **Branch**: `feat/engine` / `main` / etc.
-
-Crash = highest priority. Parse test output for `panicked at`, `panic:`, `Segmentation fault`.
 
 ---
 

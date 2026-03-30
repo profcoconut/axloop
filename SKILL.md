@@ -34,67 +34,66 @@ worker-allowed-tools:
 /axloop <doc> [rapid|quality|auto]
 ```
 
-Manager boots, reads state files, resumes the Project Loop. Stays alive for the session.
+Manager boots, reads `worktree/` state files, resumes the Project Loop. Stays alive for the session.
 
 ---
 
-## Three Loops
+## Loop
 
-**Project Loop** — runs forever, survives sessions. Sprints never stop. State in `worktree/` files.
+**Project Loop** runs forever, survives sessions. State in `worktree/` files.
 
-**Sprint Loop** — finite, repeatable unit inside the Project Loop. A completed sprint immediately triggers the next. There is no valid exit condition.
-
-**Session Loop** — one Manager per session. Reacts to events. Spawns all work in parallel. Never idles.
-
----
-
-## What the Manager Does
-
-The Manager is a **persistent background agent**. It does NOT do work itself — only recruits workers, enforces skills, and resolves conflicts. The Manager recruits whatever roles are needed for each sprint — Dev, QA, DevOps, Designer, or others as required.
+**Sprint Loop** is the atomic unit — finite, repeatable, immediately triggers the next:
 
 ```
-PROJECT LOOP (forever):
-  SPRINT LOOP:
-    1. Run Skill("compound-engineering:ce-plan") → generate sprint backlog (5–10 items)
-    2. Write sprint goal + items to worktree/.sprint-state.json
-    3. Spawn ALL workers in parallel via Agent
-    4. Workers report results to Manager only
-    5. Manager resolves conflicts
-    6. Run Skill("gstack:ship") to land and deploy
-    7. Run Skill("gstack:retro") + Skill("compound-engineering:ce-compound")
-    8. Write sprint summary to worktree/.sprint-log.json
-    9. GOTO 1 — plan next sprint immediately, no pause, no idle
-
-SESSION BOUNDARY:
-  Before session ends → write loop.log + cycle-wip + sprint-state
-  Next session → reads those files, resumes mid-sprint if needed
+1. Skill("compound-engineering:ce-plan") → generate sprint backlog (5–10 items)
+2. Write goal + items to worktree/.sprint-state.json
+3. Spawn ALL workers in parallel via Agent
+4. Workers report to Manager only
+5. Manager resolves conflicts
+6. Skill("gstack:ship") → land and deploy
+7. Skill("gstack:retro") + Skill("compound-engineering:ce-compound")
+8. Write sprint summary to worktree/.sprint-log.json
+9. GOTO 1 — no pause, no idle
 ```
 
-**Key rules:**
-- Manager NEVER does implementation work — only spawns workers
-- Manager NEVER skips a skill — skills are laws, not suggestions
-- Manager ALWAYS spawns subagents in parallel — never one at a time
-- A completed sprint is NEVER a stop condition — it triggers the next sprint
-- An empty backlog is NEVER a stop condition — it triggers Skill("compound-engineering:ce-plan") for the next sprint
-
-**Conflict resolution (Manager decides):**
-- Dev says fix works, QA says it broke something else → Manager decides, re-assigns
-- DevOps says build passes, smoke test says binary panics → Manager picks smoke test, re-assigns
-- Two devs claim the same item → Manager resolves, one keeps it
+**Session Loop**: one Manager per session. Before ending → write `loop.log` + `cycle-wip` + `sprint-state`. Next session reads them, resumes mid-sprint if needed.
 
 ---
 
-## What Workers Do
+## Laws
 
-Workers do implementation work and report results to Manager only. Workers never coordinate with each other.
+### If/Then
 
-**Dev**: Skill("gstack:investigate") → write fix → `/simplify` → Skill("gstack:review") → open PR → **report to Manager**
+- IF sprint completes → immediately start next sprint (no stop condition exists)
+- IF backlog empty → trigger Skill("compound-engineering:ce-plan") for next sprint
+- IF session ends → write loop.log + cycle-wip + sprint-state before exiting
+- IF Dev + QA conflict → Manager decides and re-assigns
+- IF smoke test fails → Manager rejects, DevOps reworks
+- IF two workers claim same item → Manager resolves, one keeps it
 
-**QA**: Skill("gstack:review") → Skill("gstack:qa") → Skill("compound-engineering:ce-review") → **report approved/rejected to Manager**
+### Always
 
-**Designer**: Skill("gstack:design-review") → **report approved/rejected to Manager**
+1. Never merge without a passing smoke test
+2. Never leave the repo broken
+3. Every sprint MUST complete all required skills before closing
+4. Manager NEVER does implementation work — only spawns workers
+5. Workers NEVER do each other's work — roles stay in their lane
+6. Workers report to Manager only
+7. Spawn ALL subagents in parallel — never one at a time
+8. Write CE compound docs after every sprint
 
-**DevOps**: build → smoke test → Skill("gstack:browse") → Skill("gstack:ship") → **report pass/fail to Manager**
+---
+
+## Workers
+
+Workers do implementation. Report to Manager only. Never coordinate with each other.
+
+| Role | Pipeline |
+|------|----------|
+| **Dev** | Skill("gstack:investigate") → write fix → `/simplify` → Skill("gstack:review") → open PR |
+| **QA** | Skill("gstack:review") → Skill("gstack:qa") → Skill("compound-engineering:ce-review") |
+| **Designer** | Skill("gstack:design-review") |
+| **DevOps** | build → smoke test → Skill("gstack:browse") → Skill("gstack:ship") |
 
 ---
 
@@ -102,9 +101,7 @@ Workers do implementation work and report results to Manager only. Workers never
 
 All skills run automatically. Skipping a skill is a loop violation.
 
-**How to invoke:** Skills are invoked by agents via the Skill tool. gstack skills use `Skill("gstack:skill-name")` (e.g., `Skill("gstack:investigate")`, `Skill("gstack:qa")`). compound-engineering skills use `Skill("compound-engineering:ce-*")`. `/simplify` is a built-in Claude Code slash command. Do NOT use slash-command format (e.g., `/investigate`, `/qa`) for agent invocations.
-
-Before spawning any worker, the Manager MUST verify the relevant skill is queued in `.sprint-state.json`. Workers MUST mark skills as completed in state before reporting back.
+**How to invoke:** gstack skills use `Skill("gstack:skill-name")`. compound-engineering skills use `Skill("compound-engineering:ce-*")`. `/simplify` is a built-in Claude Code slash command.
 
 | Skill | Who | When |
 |-------|-----|------|
@@ -117,8 +114,8 @@ Before spawning any worker, the Manager MUST verify the relevant skill is queued
 | `Skill("gstack:design-review")` | Designer | UI spec review |
 | `Skill("gstack:retro")` | Manager | After every sprint |
 | `Skill("compound-engineering:ce-plan")` | Manager | Start of every sprint |
-| `Skill("compound-engineering:ce-review")` | Manager + QA | Complex PRs (6–15 reviewers) |
-| `Skill("compound-engineering:ce-compound")` | Manager | After every sprint — writes to docs/solutions/ |
+| `Skill("compound-engineering:ce-review")` | Manager + QA | Complex PRs |
+| `Skill("compound-engineering:ce-compound")` | Manager | After every sprint |
 
 ---
 
@@ -137,7 +134,7 @@ Before spawning any worker, the Manager MUST verify the relevant skill is queued
 | `.sprint-state.json` | Current sprint — goal, items, skills completed |
 | `.sprint-log.json` | Sprint history — one entry per completed sprint |
 
-### sprint-state.json schema
+### sprint-state.json
 
 ```json
 {
@@ -152,52 +149,21 @@ Before spawning any worker, the Manager MUST verify the relevant skill is queued
 }
 ```
 
-The Manager checks `skills_completed` before marking a sprint done. If any required skill is missing, the sprint is not complete.
-
----
-
-## Laws
-
-### Project Loop (survive sessions)
-
-1. Never merge without a passing smoke test
-2. Never leave the repo broken
-3. Write `loop.log` + `cycle-wip` + `sprint-state` before session ends
-4. Write CE compound docs after every sprint
-
-### Sprint Loop
-
-5. A completed sprint immediately starts the next — no pause, no idle
-6. An empty backlog triggers Skill("compound-engineering:ce-plan") for the next sprint — never a stop
-7. Every sprint MUST complete all required skills before closing
-
-### Session Loop
-
-8. Manager never does implementation work — always spawn workers
-9. Workers never do each other's work — roles stay in their lane
-10. Workers report to Manager only — Manager handles all conflicts
-11. Spawn ALL subagents in parallel — never wait for one to finish
+Manager checks `skills_completed` before marking a sprint done.
 
 ---
 
 ## Tool Restrictions
 
-The Manager is **physically restricted** to these tools only:
+**Manager** (enforced at tool level): `Read, Glob, Grep, Agent, Skill` only. Cannot call `Bash`, `Write`, or `Edit`.
 
-```
-Read, Glob, Grep, Agent, Skill
-```
-
-The Manager cannot call `Bash`, `Write`, or `Edit`. This is enforced at the tool level, not just by instruction. If the Manager needs code written or files changed, it spawns a worker.
-
-Workers have full tool access: `Bash`, `Read`, `Write`, `Edit`, `Grep`, `Glob`, `WebSearch`, `Skill`.
+**Workers**: `Bash, Read, Write, Edit, Grep, Glob, WebSearch, Skill`
 
 ---
 
+## Setup
 
-## Setup (per project)
-
-Edit in SKILL.md before running:
+Edit before running:
 
 - **Test command**: `cargo test` / `npm test` / etc.
 - **Build command**: `cargo build` / etc.

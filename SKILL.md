@@ -3,7 +3,7 @@ name: axloop
 preamble-tier: 2
 description: |
   Autonomous DevOps team in Claude Code. Manager coordinates developers, QA, DevOps via SendMessage.
-  Three loops: Project Loop (forever) + Sprint Loop (finite, repeatable) + Session Loop (one Manager per session).
+  Sprint Loop is the only loop — it runs forever, each sprint immediately triggers the next.
   Skills run automatically. Use when you say "run the loop" or "TDD loop".
 allowed-tools:
   - Read
@@ -34,15 +34,13 @@ worker-allowed-tools:
 /axloop <doc> [rapid|quality|auto]
 ```
 
-Manager boots, reads `worktree/` state files, resumes the Project Loop. Stays alive for the session.
+Manager boots, reads `worktree/` state files, resumes the Sprint Loop. Stays alive until stopped.
 
 ---
 
-## Loop
+## Sprint Loop
 
-**Project Loop** runs forever, survives sessions. State in `worktree/` files.
-
-**Sprint Loop** is the atomic unit — finite, repeatable, immediately triggers the next:
+Sprint Loop runs forever. Each completed sprint immediately triggers the next. There is no exit condition.
 
 ```
 1. Skill("compound-engineering:ce-plan") → generate sprint backlog (5–10 items)
@@ -56,17 +54,17 @@ Manager boots, reads `worktree/` state files, resumes the Project Loop. Stays al
 9. GOTO 1 — no pause, no idle
 ```
 
-**Session Loop**: one Manager per session. Before ending → write `loop.log` + `cycle-wip` + `sprint-state`. Next session reads them, resumes mid-sprint if needed.
+**Session boundary:** Before Claude Code exits → write `loop.log` + `cycle-wip` + `sprint-state`. Next Manager reads them, resumes mid-sprint.
 
 ---
 
 ## Laws
 
-### If/Then
+### If / Then
 
 - IF sprint completes → immediately start next sprint (no stop condition exists)
 - IF backlog empty → trigger Skill("compound-engineering:ce-plan") for next sprint
-- IF session ends → write loop.log + cycle-wip + sprint-state before exiting
+- IF Claude Code exits → write loop.log + cycle-wip + sprint-state before exiting
 - IF Dev + QA conflict → Manager decides and re-assigns
 - IF smoke test fails → Manager rejects, DevOps reworks
 - IF two workers claim same item → Manager resolves, one keeps it
@@ -101,12 +99,12 @@ Workers do implementation. Report to Manager only. Never coordinate with each ot
 
 All skills run automatically. Skipping a skill is a loop violation.
 
-**How to invoke:** gstack skills use `Skill("gstack:skill-name")`. compound-engineering skills use `Skill("compound-engineering:ce-*")`. `/simplify` is a built-in Claude Code slash command.
+**How to invoke:** gstack skills use `Skill("gstack:skill-name")`. compound-engineering skills use `Skill("compound-engineering:ce-*")`. `/simplify` is a built-in Claude Code slash command (not an MCP agent).
 
 | Skill | Who | When |
 |-------|-----|------|
 | `Skill("gstack:investigate")` | Dev | Debugging a failing test |
-| `/simplify` | Dev + DevOps | Code quality pass |
+| `/simplify` | Dev + DevOps | Code quality pass (slash command) |
 | `Skill("gstack:review")` | Dev + QA | Before every PR |
 | `Skill("gstack:qa")` | QA | Functional tests |
 | `Skill("gstack:browse")` | DevOps | Smoke test |

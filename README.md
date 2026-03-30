@@ -2,7 +2,7 @@
 
 Autonomous DevOps team in Claude Code. Manager coordinates developers, QA, DevOps via SendMessage.
 
-Three loops: **Project Loop** (forever) · **Sprint Loop** (finite, repeatable, triggers next immediately) · **Session Loop** (one Manager per session)
+**One loop:** Sprint Loop runs forever — each completed sprint immediately triggers the next.
 
 ## Start
 
@@ -22,7 +22,7 @@ Three loops: **Project Loop** (forever) · **Sprint Loop** (finite, repeatable, 
 
 ## Laws
 
-**If/Then:** Sprint completes → start next immediately · Backlog empty → Skill("compound-engineering:ce-plan") · Session ends → write loop.log + cycle-wip + sprint-state
+**If/Then:** Sprint completes → start next immediately · Backlog empty → Skill("compound-engineering:ce-plan") · Claude Code exits → write loop.log + cycle-wip + sprint-state
 
 **Always:** Never merge without smoke test · Never leave repo broken · Complete all skills before closing sprint · Manager never does implementation work · Workers never do each other's work · Workers report to Manager only · Spawn ALL in parallel · Write CE docs after every sprint
 
@@ -33,7 +33,7 @@ Workers: Bash, Read, Write, Edit, Grep, Glob, WebSearch, Skill
 
 ## Session Resume
 
-All state in worktree/. New Manager reads loop.log + cycle-wip + sprint-state, resumes mid-sprint.
+All state in worktree/. Next Manager reads loop.log + cycle-wip + sprint-state, resumes mid-sprint.
 
 ## Location
 

@@ -18,11 +18,11 @@ Autonomous DevOps team in Claude Code. Manager coordinates developers, QA, DevOp
 
 ## Skills
 
-`Skill("gstack:investigate")` `/simplify` `Skill("gstack:review")` `Skill("gstack:qa")` `Skill("gstack:browse")` `Skill("gstack:ship")` `Skill("gstack:design-review")` `Skill("gstack:retro")` `Skill("compound-engineering:ce-plan")` `Skill("compound-engineering:ce-review")` `Skill("compound-engineering:ce-compound")`
+`Skill("investigate")` `Skill("simplify")` `Skill("review")` `Skill("qa")` `Skill("browse")` `Skill("ship")` `Skill("design-review")` `Skill("retro")` `Skill("compound-engineering:ce-plan")` `Skill("compound-engineering:ce-review")` `Skill("compound-engineering:ce-compound")`
 
 ## Laws
 
-**If/Then:** Sprint completes → start next immediately · Backlog empty → Skill("compound-engineering:ce-plan") · Claude Code exits → write loop.log + cycle-wip + sprint-state
+**If/Then:** Sprint completes → start next immediately · Backlog empty → Skill("compound-engineering:ce-plan")
 
 **Always:** Never merge without smoke test · Never leave repo broken · Complete all skills before closing sprint · Manager never does implementation work · Workers never do each other's work · Workers report to Manager only · Spawn ALL in parallel · Write CE docs after every sprint
 
@@ -30,10 +30,6 @@ Autonomous DevOps team in Claude Code. Manager coordinates developers, QA, DevOp
 
 Manager: Read, Glob, Grep, Agent, Skill only
 Workers: Bash, Read, Write, Edit, Grep, Glob, WebSearch, Skill
-
-## Session Resume
-
-All state in worktree/. Next Manager reads loop.log + cycle-wip + sprint-state, resumes mid-sprint.
 
 ## Location
 

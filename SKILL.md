@@ -48,8 +48,8 @@ Sprint Loop runs forever. Each completed sprint immediately triggers the next. T
 3. Spawn ALL workers in parallel via Agent
 4. Workers report to Manager only
 5. Manager resolves conflicts
-6. Skill("gstack:ship") → land and deploy
-7. Skill("gstack:retro") + Skill("compound-engineering:ce-compound")
+6. Skill("ship") → land and deploy
+7. Skill("retro") + Skill("compound-engineering:ce-compound")
 8. Write sprint summary to worktree/.sprint-log.json
 9. GOTO 1 — no pause, no idle
 ```
@@ -86,10 +86,10 @@ Workers do implementation. Report to Manager only. Never coordinate with each ot
 
 | Role | Pipeline |
 |------|----------|
-| **Dev** | Skill("gstack:investigate") → write fix → `/simplify` → Skill("gstack:review") → open PR |
-| **QA** | Skill("gstack:review") → Skill("gstack:qa") → Skill("compound-engineering:ce-review") |
-| **Designer** | Skill("gstack:design-review") |
-| **DevOps** | build → smoke test → Skill("gstack:browse") → Skill("gstack:ship") |
+| **Dev** | Skill("investigate") → write fix → `/simplify` → Skill("review") → open PR |
+| **QA** | Skill("review") → Skill("qa") → Skill("compound-engineering:ce-review") |
+| **Designer** | Skill("design-review") |
+| **DevOps** | build → smoke test → Skill("browse") → Skill("ship") |
 
 ---
 
@@ -97,18 +97,18 @@ Workers do implementation. Report to Manager only. Never coordinate with each ot
 
 All skills run automatically. Skipping a skill is a loop violation.
 
-**How to invoke:** Agents use `Skill("...")` for all skills. gstack skills: `Skill("gstack:skill-name")`. compound-engineering skills: `Skill("compound-engineering:ce-*")`. `Skill("simplify")` maps to the built-in slash command.
+**How to invoke:** All skills use `Skill("...")`. gstack skills: `Skill("investigate")`, `Skill("qa")`, etc. compound-engineering skills: `Skill("compound-engineering:ce-plan")` etc. `Skill("simplify")` maps to the built-in slash command.
 
 | Skill | Who | When |
 |-------|-----|------|
-| `Skill("gstack:investigate")` | Dev | Debugging a failing test |
+| `Skill("investigate")` | Dev | Debugging a failing test |
 | `Skill("simplify")` | Dev + DevOps | Code quality pass |
-| `Skill("gstack:review")` | Dev + QA | Before every PR |
-| `Skill("gstack:qa")` | QA | Functional tests |
-| `Skill("gstack:browse")` | DevOps | Smoke test |
-| `Skill("gstack:ship")` | DevOps | Auto-merge PR, deploy to production |
-| `Skill("gstack:design-review")` | Designer | UI spec review |
-| `Skill("gstack:retro")` | Manager | After every sprint |
+| `Skill("review")` | Dev + QA | Before every PR |
+| `Skill("qa")` | QA | Functional tests |
+| `Skill("browse")` | DevOps | Smoke test |
+| `Skill("ship")` | DevOps | Auto-merge PR, deploy to production |
+| `Skill("design-review")` | Designer | UI spec review |
+| `Skill("retro")` | Manager | After every sprint |
 | `Skill("compound-engineering:ce-plan")` | Manager | Start of every sprint |
 | `Skill("compound-engineering:ce-review")` | Manager + QA | Complex PRs |
 | `Skill("compound-engineering:ce-compound")` | Manager | After every sprint |

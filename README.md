@@ -4,6 +4,12 @@ Autonomous DevOps team in Claude Code. Manager coordinates developers, QA, DevOp
 
 **One loop:** Sprint Loop runs forever — each completed sprint immediately triggers the next.
 
+## Philosophy
+
+**Run until the goal is reached, not until a session dies.** The loop is designed to survive hundreds of hours by treating session boundaries as irrelevant. If a worker dies, it gets restarted. If the Manager session ends, state files persist and the next Manager resumes. The only stop condition is a manual external signal.
+
+This contrasts with typical agent loops that terminate when: the session times out, a skill asks a question, a tool call fails with a confusing error, or a human says "stop." Axloop handles all of those internally — the loop continues, the work gets restarted, and the goal eventually gets reached.
+
 ## Start
 
 ```

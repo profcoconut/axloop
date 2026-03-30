@@ -38,6 +38,7 @@ Sprint Loop runs forever. Each completed sprint immediately triggers the next. T
 
 ```
 0. Read worktree/.sprint-state.json + .cycle-wip + .loop.log to understand current status if not in memory
+0.5. Check all workers — if any is inactive or session-dead, restart it before proceeding
 1. Skill("compound-engineering:ce-plan") → generate sprint backlog (5–10 items)
 2. Write goal + items to worktree/.sprint-state.json
 3. Spawn ALL workers in parallel via Agent

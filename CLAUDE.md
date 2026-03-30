@@ -91,7 +91,20 @@ Tool restrictions belong in Always as numbered items (e.g., "9. Manager: Read, G
 - **No session boundary.** Session end is a Claude Code event, not an axloop concept.
 - **No Setup section.** Project-specific config lives elsewhere.
 - **Consistent Skill() format everywhere.** Check for `gstack:` prefix, slash commands, mixed formats.
-- **Laws after Loop.** Loop → Laws → Workers → Skills → State Files → Stop.
+- **Laws after Loop.** Sprint Loop → Laws → Workers → Skills → State Files → Stop.
 - Use backticks for tool names, skill names, file paths.
 - Use `Skill("...")` for all skill invocations in tables, steps, and laws.
 - Keep it lean — delete redundant sections when consolidating.
+
+---
+
+## Core Principles
+
+These principles from README.md govern all SKILL.md design decisions:
+
+1. **Loops, not prompts** — `GOTO 0` is always the final step. No exit condition.
+2. **Skills are law** — Skipping a skill is a loop violation. `skills_completed` must match `skills_required`.
+3. **Strict role separation** — Dev codes, QA tests, DevOps ships. Manager coordinates only (Read, Glob, Grep, Agent, Skill).
+4. **Parallel by default** — All workers spawn simultaneously. No serialization.
+5. **Hard safety gate** — Nothing merges without a passing smoke test.
+6. **Crash-proof state** — All state in `worktree/` files, not memory.

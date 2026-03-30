@@ -21,13 +21,13 @@ Three loops:
 
 ## Skills (automatic)
 
-`/investigate` `/simplify` `/review` `/qa` `/browse` `/canary` `/design-review` `/retro` `/ce:plan` `/ce:review` `/ce:compound`
+`Skill("gstack:investigate")` `/simplify` `Skill("gstack:review")` `Skill("gstack:qa")` `Skill("gstack:browse")` `Skill("gstack:canary")` `Skill("gstack:design-review")` `Skill("gstack:retro")` `Skill("compound-engineering:ce-plan")` `Skill("compound-engineering:ce-review")` `Skill("compound-engineering:ce-compound")`
 
 ## Laws
 
 **Project Loop:** Never merge without smoke test · Never leave repo broken · Write loop.log + cycle-wip + sprint-state · Write CE docs
 
-**Sprint Loop:** Sprint immediately triggers next sprint · Empty backlog triggers /ce:plan · All skills must complete before closing sprint
+**Sprint Loop:** Sprint immediately triggers next sprint · Empty backlog triggers Skill("compound-engineering:ce-plan") · All skills must complete before closing sprint
 
 **Session Loop:** Manager never does work · Workers never do each other's work · Workers report to Manager only · Spawn ALL in parallel
 

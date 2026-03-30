@@ -60,8 +60,8 @@ PROJECT LOOP (forever):
     3. Spawn ALL workers in parallel via Agent
     4. Workers report results to Manager only
     5. Manager resolves conflicts
-    6. Run /ship to land and deploy
-    7. Run /retro + Skill("compound-engineering:ce-compound")
+    6. Run Skill("gstack:ship") to land and deploy
+    7. Run Skill("gstack:retro") + Skill("compound-engineering:ce-compound")
     8. Write sprint summary to worktree/.sprint-log.json
     9. GOTO 1 — plan next sprint immediately, no pause, no idle
 
@@ -75,7 +75,7 @@ SESSION BOUNDARY:
 - Manager NEVER skips a skill — skills are laws, not suggestions
 - Manager ALWAYS spawns subagents in parallel — never one at a time
 - A completed sprint is NEVER a stop condition — it triggers the next sprint
-- An empty backlog is NEVER a stop condition — it triggers /ce:plan for the next sprint
+- An empty backlog is NEVER a stop condition — it triggers Skill("compound-engineering:ce-plan") for the next sprint
 
 **Conflict resolution (Manager decides):**
 - Dev says fix works, QA says it broke something else → Manager decides, re-assigns
@@ -88,13 +88,13 @@ SESSION BOUNDARY:
 
 Workers do implementation work and report results to Manager only. Workers never coordinate with each other.
 
-**Dev**: investigate → write fix → `/simplify` → `/review` → open PR → **report to Manager**
+**Dev**: Skill("gstack:investigate") → write fix → `/simplify` → Skill("gstack:review") → open PR → **report to Manager**
 
-**QA**: `/review` → `/qa` → `/ce:review` → **report approved/rejected to Manager**
+**QA**: Skill("gstack:review") → Skill("gstack:qa") → Skill("compound-engineering:ce-review") → **report approved/rejected to Manager**
 
-**Designer**: `/design-review` → **report approved/rejected to Manager**
+**Designer**: Skill("gstack:design-review") → **report approved/rejected to Manager**
 
-**DevOps**: build → smoke test → `/browse` → `/ship` → **report pass/fail to Manager**
+**DevOps**: build → smoke test → Skill("gstack:browse") → Skill("gstack:ship") → **report pass/fail to Manager**
 
 ---
 
@@ -102,23 +102,23 @@ Workers do implementation work and report results to Manager only. Workers never
 
 All skills run automatically. Skipping a skill is a loop violation.
 
-**How to invoke:** These are MCP agent names, not slash commands. Agents invoke them via `Skill("compound-engineering:ce-plan")`, `Skill("compound-engineering:ce-review")`, or `Skill("compound-engineering:ce-compound")`. Do NOT type them as `/ce:plan` — that format is for human slash commands, not agent invocations.
+**How to invoke:** Skills are invoked by agents via the Skill tool. gstack skills use `Skill("gstack:skill-name")` (e.g., `Skill("gstack:investigate")`, `Skill("gstack:qa")`). compound-engineering skills use `Skill("compound-engineering:ce-*")`. `/simplify` is a built-in Claude Code slash command. Do NOT use slash-command format (e.g., `/investigate`, `/qa`) for agent invocations.
 
 Before spawning any worker, the Manager MUST verify the relevant skill is queued in `.sprint-state.json`. Workers MUST mark skills as completed in state before reporting back.
 
 | Skill | Who | When |
 |-------|-----|------|
-| `/investigate` | Dev | Debugging a failing test |
+| `Skill("gstack:investigate")` | Dev | Debugging a failing test |
 | `/simplify` | Dev + DevOps | Code quality pass |
-| `/review` | Dev + QA | Before every PR |
-| `/qa` | QA | Functional tests |
-| `/browse` | DevOps | Smoke test |
-| `/ship` | DevOps | Auto-merge PR, deploy to production |
-| `/design-review` | Designer | UI spec review |
-| `/retro` | Manager | After every sprint |
-| `compound-engineering:ce-plan` | Manager | Start of every sprint |
-| `compound-engineering:ce-review` | Manager + QA | Complex PRs (6–15 reviewers) |
-| `compound-engineering:ce-compound` | Manager | After every sprint — writes to docs/solutions/ |
+| `Skill("gstack:review")` | Dev + QA | Before every PR |
+| `Skill("gstack:qa")` | QA | Functional tests |
+| `Skill("gstack:browse")` | DevOps | Smoke test |
+| `Skill("gstack:ship")` | DevOps | Auto-merge PR, deploy to production |
+| `Skill("gstack:design-review")` | Designer | UI spec review |
+| `Skill("gstack:retro")` | Manager | After every sprint |
+| `Skill("compound-engineering:ce-plan")` | Manager | Start of every sprint |
+| `Skill("compound-engineering:ce-review")` | Manager + QA | Complex PRs (6–15 reviewers) |
+| `Skill("compound-engineering:ce-compound")` | Manager | After every sprint — writes to docs/solutions/ |
 
 ---
 
@@ -146,8 +146,8 @@ Before spawning any worker, the Manager MUST verify the relevant skill is queued
   "goal": "improve test coverage on auth module",
   "items": ["item-a", "item-b", "item-c"],
   "completed": ["item-a"],
-  "skills_required": ["compound-engineering:ce-plan", "/investigate", "/review", "/retro", "compound-engineering:ce-compound"],
-  "skills_completed": ["/ce:plan"],
+  "skills_required": ["Skill(\"compound-engineering:ce-plan\")", "Skill(\"gstack:investigate\")", "Skill(\"gstack:review\")", "Skill(\"gstack:retro\")", "Skill(\"compound-engineering:ce-compound\")"],
+  "skills_completed": ["Skill(\"compound-engineering:ce-plan\")"],
   "started_at": "2026-03-29T10:00:00Z"
 }
 ```

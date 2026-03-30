@@ -11,12 +11,6 @@ allowed-tools:
   - Grep
   - Agent
   - Skill
-manager-allowed-tools-only:
-  - Read
-  - Glob
-  - Grep
-  - Agent
-  - Skill
 worker-allowed-tools:
   - Bash
   - Read

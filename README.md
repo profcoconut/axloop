@@ -1,14 +1,12 @@
 # axloop
 
-Autonomous DevOps team in Claude Code. Manager coordinates developers, QA, DevOps via SendMessage.
-
-**One loop:** Sprint Loop runs forever — each completed sprint immediately triggers the next.
+Autonomous DevOps team that runs forever.
 
 ## Philosophy
 
-**Run until the goal is reached, not until a session dies.** The loop is designed to survive hundreds of hours by treating session boundaries as irrelevant. If a worker dies, it gets restarted. If the Manager session ends, state files persist and the next Manager resumes. The only stop condition is a manual external signal.
+**The loop runs until the goal is reached — not until a session dies, a skill asks a question, or a timeout hits.** Session boundaries are irrelevant. Workers die and get restarted. Manager session ends and state files carry the work forward. The only exit is a manual signal from outside.
 
-This contrasts with typical agent loops that terminate when: the session times out, a skill asks a question, a tool call fails with a confusing error, or a human says "stop." Axloop handles all of those internally — the loop continues, the work gets restarted, and the goal eventually gets reached.
+Every sprint enforces the same skills in the same order. No skipping. No shortcuts. The discipline is built into the loop itself.
 
 ## Start
 
@@ -16,26 +14,23 @@ This contrasts with typical agent loops that terminate when: the session times o
 /axloop <doc> [rapid|quality|auto]
 ```
 
-## Roles
+## How it works
 
-**Manager** — persistent background agent. Never does work. Spawns workers, enforces skills, resolves conflicts. Tool-restricted: Read, Glob, Grep, Agent, Skill only.
+**Manager** — spawns workers, enforces skills, resolves conflicts. Never touches code.
 
-**Workers** — do implementation work. Report to Manager only. Full tool access.
+**Workers** — do the work. Report to Manager only.
 
-## Skills
+Every sprint runs: plan → implement → review → test → ship → document. Each skill completes before the next starts. Sprint ends and the next one begins immediately.
 
-`Skill("investigate")` `Skill("simplify")` `Skill("review")` `Skill("qa")` `Skill("browse")` `Skill("ship")` `Skill("design-review")` `Skill("retro")` `Skill("compound-engineering:ce-plan")` `Skill("compound-engineering:ce-review")` `Skill("compound-engineering:ce-compound")`
+## Skills enforced
 
-## Laws
+investigate · simplify · review · qa · browse · ship · design-review · retro · ce-plan · ce-review · ce-compound
 
-**If/Then:** Sprint completes → start next immediately · Backlog empty → Skill("compound-engineering:ce-plan")
+## Stop
 
-**Always:** Never merge without smoke test · Never leave repo broken · Complete all skills before closing sprint · Manager never does implementation work · Workers never do each other's work · Workers report to Manager only · Spawn ALL in parallel · Write CE docs after every sprint
-
-## Tool Restrictions
-
-Manager: Read, Glob, Grep, Agent, Skill only
-Workers: Bash, Read, Write, Edit, Grep, Glob, WebSearch, Skill
+```bash
+echo "stop" > worktree/.project-loop-state
+```
 
 ## Location
 

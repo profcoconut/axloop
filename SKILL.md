@@ -54,8 +54,6 @@ Sprint Loop runs forever. Each completed sprint immediately triggers the next. T
 9. GOTO 1 — no pause, no idle
 ```
 
-**Session boundary:** Before Claude Code exits → write `loop.log` + `cycle-wip` + `sprint-state`. Next Manager reads them, resumes mid-sprint.
-
 ---
 
 ## Laws
@@ -99,12 +97,12 @@ Workers do implementation. Report to Manager only. Never coordinate with each ot
 
 All skills run automatically. Skipping a skill is a loop violation.
 
-**How to invoke:** gstack skills use `Skill("gstack:skill-name")`. compound-engineering skills use `Skill("compound-engineering:ce-*")`. `/simplify` is a built-in Claude Code slash command (not an MCP agent).
+**How to invoke:** Agents use `Skill("...")` for all skills. gstack skills: `Skill("gstack:skill-name")`. compound-engineering skills: `Skill("compound-engineering:ce-*")`. `Skill("simplify")` maps to the built-in slash command.
 
 | Skill | Who | When |
 |-------|-----|------|
 | `Skill("gstack:investigate")` | Dev | Debugging a failing test |
-| `/simplify` | Dev + DevOps | Code quality pass (slash command) |
+| `Skill("simplify")` | Dev + DevOps | Code quality pass |
 | `Skill("gstack:review")` | Dev + QA | Before every PR |
 | `Skill("gstack:qa")` | QA | Functional tests |
 | `Skill("gstack:browse")` | DevOps | Smoke test |

@@ -55,13 +55,13 @@ The Manager is a **persistent background agent**. It does NOT do work itself —
 ```
 PROJECT LOOP (forever):
   SPRINT LOOP:
-    1. Run /ce:plan → generate sprint backlog (5–10 items)
+    1. Run Skill("compound-engineering:ce-plan") → generate sprint backlog (5–10 items)
     2. Write sprint goal + items to worktree/.sprint-state.json
     3. Spawn ALL workers in parallel via Agent
     4. Workers report results to Manager only
     5. Manager resolves conflicts
     6. Run /ship to land and deploy
-    7. Run /retro + /ce:compound
+    7. Run /retro + Skill("compound-engineering:ce-compound")
     8. Write sprint summary to worktree/.sprint-log.json
     9. GOTO 1 — plan next sprint immediately, no pause, no idle
 
@@ -102,6 +102,8 @@ Workers do implementation work and report results to Manager only. Workers never
 
 All skills run automatically. Skipping a skill is a loop violation.
 
+**How to invoke:** These are MCP agent names, not slash commands. Agents invoke them via `Skill("compound-engineering:ce-plan")`, `Skill("compound-engineering:ce-review")`, or `Skill("compound-engineering:ce-compound")`. Do NOT type them as `/ce:plan` — that format is for human slash commands, not agent invocations.
+
 Before spawning any worker, the Manager MUST verify the relevant skill is queued in `.sprint-state.json`. Workers MUST mark skills as completed in state before reporting back.
 
 | Skill | Who | When |
@@ -114,9 +116,9 @@ Before spawning any worker, the Manager MUST verify the relevant skill is queued
 | `/ship` | DevOps | Auto-merge PR, deploy to production |
 | `/design-review` | Designer | UI spec review |
 | `/retro` | Manager | After every sprint |
-| `/ce:plan` | Manager | Start of every sprint |
-| `/ce:review` | Manager + QA | Complex PRs (6–15 reviewers) |
-| `/ce:compound` | Manager | After every sprint — writes to docs/solutions/ |
+| `compound-engineering:ce-plan` | Manager | Start of every sprint |
+| `compound-engineering:ce-review` | Manager + QA | Complex PRs (6–15 reviewers) |
+| `compound-engineering:ce-compound` | Manager | After every sprint — writes to docs/solutions/ |
 
 ---
 
@@ -144,7 +146,7 @@ Before spawning any worker, the Manager MUST verify the relevant skill is queued
   "goal": "improve test coverage on auth module",
   "items": ["item-a", "item-b", "item-c"],
   "completed": ["item-a"],
-  "skills_required": ["/ce:plan", "/investigate", "/review", "/retro", "/ce:compound"],
+  "skills_required": ["compound-engineering:ce-plan", "/investigate", "/review", "/retro", "compound-engineering:ce-compound"],
   "skills_completed": ["/ce:plan"],
   "started_at": "2026-03-29T10:00:00Z"
 }
@@ -166,7 +168,7 @@ The Manager checks `skills_completed` before marking a sprint done. If any requi
 ### Sprint Loop
 
 5. A completed sprint immediately starts the next — no pause, no idle
-6. An empty backlog triggers `/ce:plan` for the next sprint — never a stop
+6. An empty backlog triggers Skill("compound-engineering:ce-plan") for the next sprint — never a stop
 7. Every sprint MUST complete all required skills before closing
 
 ### Session Loop
